@@ -4,4 +4,4 @@ go 1.17
 
 replace github.com/gowerm/dwpm/pkg/helpers => ./pkg/helpers/
 
-replace github.com/gowerm/dwpm/pkg/dwclient => ./pkg/dwclient/
+replace github.com/gowerm/dwpm/pkg/idGamesClient => ./pkg/idGamesClient/

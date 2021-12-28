@@ -1,4 +1,4 @@
-package dwclient
+package idGamesClient
 
 import (
 	"encoding/json"
@@ -22,10 +22,10 @@ type packageEntry struct {
 	Aliases []string `json:"aliases"`
 }
 
-func newPackageManager() packageManager {
+func newPackageManager(path string) packageManager {
 	pm := packageManager{}
 
-	pm.path = LOCALPATH + ".pkglist"
+	pm.path = path + ".pkglist"
 
 	pm.load()
 
@@ -41,7 +41,7 @@ func (pm *packageManager) load() {
 
 func (pm *packageManager) NewEntry(filename, path, url string) {
 	pm.entries = append(pm.entries, packageEntry{Name: filename, Dir: path, Uri: url})
-	pm.Commit()
+	helpers.HandleFatalErr(pm.Commit())
 }
 
 func (pm *packageManager) Contains(filename, url string) bool {
@@ -53,12 +53,18 @@ func (pm *packageManager) Contains(filename, url string) bool {
 	return false
 }
 
-func (pm *packageManager) Commit() {
+func (pm *packageManager) Commit() error {
 	bytes, err := json.Marshal(pm.entries)
-	helpers.HandleFatalErr(err)
+	if err != nil {
+		return err
+	}
 
 	err = ioutil.WriteFile(pm.path, bytes, 0644)
-	helpers.HandleFatalErr(err)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (pm *packageManager) GetFilePath(filename string) string {
@@ -87,5 +93,9 @@ func (pm *packageManager) AddAlias(target, alias string) {
 		}
 	}
 
-	pm.Commit()
+	helpers.HandleFatalErr(pm.Commit())
+}
+
+func (pm *packageManager) Remove(target string) {
+
 }

@@ -1,2 +1,2 @@
 # dwpm
-DoomWorld (Idgames Archive) package manager
+WadMan - DOOM WAD Manager

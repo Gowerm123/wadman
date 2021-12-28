@@ -1,4 +1,4 @@
-package dwclient
+package idGamesClient
 
 import (
 	"encoding/xml"
@@ -13,9 +13,8 @@ import (
 	"github.com/gowerm/dwpm/pkg/helpers"
 )
 
-const BASE_URI = "http://www.doomworld.com/idgames/api/api.php"
-const IDGAMESSUBSTR = "idgames://"
-const LOCALPATH = "/home/matt/dwpm/"
+const idGamesBaseURI = "http://www.doomworld.com/idgames/api/api.php"
+const idGamesSubstr = "idgames://"
 
 var (
 	mirrors       []string = []string{"mirrors.syringanetworks.net", "www.quaddicted.com", "ftpmirror1.infania.net"}
@@ -25,6 +24,7 @@ var (
 type Client struct {
 	httpClient http.Client
 	packageManager
+	Configuration
 }
 
 type Payload struct {
@@ -53,7 +53,13 @@ type apiFile struct {
 }
 
 func New() Client {
-	return Client{httpClient: *http.DefaultClient, packageManager: newPackageManager()}
+	var client Client
+
+	client.Configuration = loadConfigs()
+	client.httpClient = *http.DefaultClient
+	client.packageManager = newPackageManager(client.Configuration.InstallDir)
+
+	return client
 }
 
 func (dwc *Client) sendQuery(query, queryType string) searchResponse {
@@ -85,7 +91,7 @@ func formatAndPrint(file apiFile) {
 }
 
 func (dwc *Client) dial(action string, params map[string]string) (Payload, error) {
-	actionEndpoint := fmt.Sprintf("%s?action=%s", BASE_URI, action)
+	actionEndpoint := fmt.Sprintf("%s?action=%s", idGamesBaseURI, action)
 
 	for k, v := range params {
 		actionEndpoint = fmt.Sprintf("%s&%s=%s", actionEndpoint, url.QueryEscape(k), url.QueryEscape(v))
@@ -114,30 +120,14 @@ func (dwc *Client) Install(query, queryType string) bool {
 			break
 		}
 		for _, mirror := range mirrors {
-			filepath := strings.Replace(file.IdGamesUrl, IDGAMESSUBSTR, "", 1)
-			endpointUri := fmt.Sprintf("http://%s/idgames/%s", mirror, filepath)
+			installPath := saveContentToZipFile(file, mirror, dwc)
 
-			fmt.Println("Attempting install from ", endpointUri)
+			unzipped := fmt.Sprintf("%s%s", dwc.Configuration.InstallDir, dirName)
+			err := helpers.Unzip(installPath, unzipped)
+			helpers.HandleFatalErr(err, "failed to unzip archive", installPath, "-")
 
-			content, err := dwc.httpClient.Get(endpointUri)
-			helpers.HandleFatalErr(err, "failed to retrieve file contents from mirror", mirror, "-")
-
-			fmtdLocalPath := fmt.Sprint(LOCALPATH, file.Filename)
-
-			_, err = os.Create(fmtdLocalPath)
-			helpers.HandleFatalErr(err, "failed to create file ", fmt.Sprint(LOCALPATH, file.Filename), "-")
-
-			bytes, _ := ioutil.ReadAll(content.Body)
-
-			err = os.WriteFile(fmtdLocalPath, bytes, 0644)
-			helpers.HandleFatalErr(err, "failed to write file -")
-
-			unzipped := fmt.Sprintf("%s%s", LOCALPATH, dirName)
-			err = helpers.Unzip(fmtdLocalPath, unzipped)
-			helpers.HandleFatalErr(err, "failed to unzip archive", fmtdLocalPath, "-")
-
-			err = os.Remove(fmtdLocalPath)
-			helpers.HandleFatalErr(err, "failed to delete zip archive", fmtdLocalPath, "-")
+			err = os.Remove(installPath)
+			helpers.HandleFatalErr(err, "failed to delete zip archive", installPath, "-")
 
 			dwc.packageManager.NewEntry(dirName, unzipped, file.IdGamesUrl)
 
@@ -155,16 +145,37 @@ func (dwc *Client) List() {
 
 func (dwc *Client) AddAlias(target, alias string) {
 	dwc.packageManager.AddAlias(target, alias)
-	dwc.packageManager.Commit()
 }
 
 func (dwc *Client) ValidateCommand(cmd string) {
 	if !helpers.Contains(validCommands, cmd) {
 		err := errors.New(fmt.Sprint("invalid command, valid commands are ", validCommands))
-		helpers.HandleFatalErr(err, "")
+		helpers.HandleFatalErr(err)
 	}
 }
 
 func (dwc *Client) LookupLocalPath(name string) string {
 	return dwc.packageManager.GetFilePath(name)
+}
+
+func saveContentToZipFile(file apiFile, mirror string, dwc *Client) string {
+	filepath := strings.Replace(file.IdGamesUrl, idGamesSubstr, "", 1)
+	endpointUri := fmt.Sprintf("http://%s/idgames/%s", mirror, filepath)
+
+	fmt.Println("Attempting install from ", endpointUri)
+
+	content, err := dwc.httpClient.Get(endpointUri)
+	helpers.HandleFatalErr(err, "failed to retrieve file contents from mirror", mirror, "-")
+
+	fmtdLocalPath := fmt.Sprint(dwc.Configuration.InstallDir, file.Filename)
+
+	_, err = os.Create(fmtdLocalPath)
+	helpers.HandleFatalErr(err, "failed to create file ", fmt.Sprint(dwc.Configuration.InstallDir, file.Filename), "-")
+
+	bytes, _ := ioutil.ReadAll(content.Body)
+
+	err = os.WriteFile(fmtdLocalPath, bytes, 0644)
+	helpers.HandleFatalErr(err, "failed to write file -")
+
+	return fmtdLocalPath
 }
