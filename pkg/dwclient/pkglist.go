@@ -3,14 +3,12 @@ package dwclient
 import (
 	"encoding/json"
 	"io/ioutil"
-	"os"
 	"strings"
 
 	"github.com/gowerm/dwpm/pkg/helpers"
 )
 
 type packageManager struct {
-	*os.File
 	path string
 
 	entries []packageEntry
@@ -26,7 +24,6 @@ type packageEntry struct {
 func newPackageManager() packageManager {
 	pm := packageManager{}
 
-	pm.File, _ = os.OpenFile(LOCALPATH+".pkglist", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	pm.path = LOCALPATH + ".pkglist"
 
 	pm.load()

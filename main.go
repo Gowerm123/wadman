@@ -21,7 +21,7 @@ func main() {
 	if command == "install" {
 		var queryType string = "filename"
 		if len(args) < 3 {
-			fmt.Print("invalid install command. proper use is\n    dwpm install QUERY (optional)QUERYTYPE\nIf you need help, you can run\n    dwpm help\nfor more information")
+			fmt.Println("invalid install command. proper use is\n    dwpm install QUERY (optional)QUERYTYPE\nIf you need help, you can run\n    dwpm help\nfor more information")
 			os.Exit(0)
 		} else if len(args) == 4 {
 			queryType = args[3]
@@ -31,7 +31,7 @@ func main() {
 		client.Install(query, queryType)
 	} else if command == "run" {
 		if len(args) < 4 {
-			fmt.Print("invalid run command. proper use is\n    dwpm run IWAD TARGET\nIf you need help, you can run\n    dwpm help\nfor more information")
+			fmt.Println("invalid run command. proper use is\n    dwpm run IWAD TARGET\nIf you need help, you can run\n    dwpm help\nfor more information")
 			os.Exit(0)
 		}
 
@@ -43,21 +43,23 @@ func main() {
 		}
 
 		launcher := "gzdoom"
-		basePath := "/usr/share/dwpm/"
+		basePath := "/home/matt/dwpm/"
 
 		command := exec.Command(launcher, "-IWAD", iwad, "-file", basePath+target, "&")
 		command.Output()
 	} else if command == "search" {
 		var queryType string = "filename"
 		if len(args) < 3 {
-			fmt.Print("invalid search command. proper use is\n    dwpm search QUERY (optional)QUERYTYPE\nIf you need help, you can run\n    dwpm help\nfor more information")
+			fmt.Println("invalid search command. proper use is\n    dwpm search QUERY (optional)QUERYTYPE\nIf you need help, you can run\n    dwpm help\nfor more information")
 			os.Exit(0)
 		} else if len(args) == 4 {
 			queryType = args[3]
 		}
 		query := args[2]
-		fmt.Print("Searching...\n")
+		fmt.Println("Searching...")
 		client.SearchAndPrint(query, queryType)
+	} else if command == "list" {
+		client.List()
 	}
 
 }

@@ -12,7 +12,7 @@ import (
 
 func HandleFatalErr(err error, msgs ...string) {
 	if err != nil {
-		fmt.Print(msgs, err.Error())
+		fmt.Println(msgs, err.Error())
 		os.Exit(1)
 	}
 }

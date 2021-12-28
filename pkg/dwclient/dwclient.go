@@ -15,11 +15,11 @@ import (
 
 const BASE_URI = "http://www.doomworld.com/idgames/api/api.php"
 const IDGAMESSUBSTR = "idgames://"
-const LOCALPATH = "/usr/share/dwpm/"
+const LOCALPATH = "/home/matt/dwpm/"
 
 var (
 	mirrors       []string = []string{"mirrors.syringanetworks.net", "www.quaddicted.com", "ftpmirror1.infania.net"}
-	validCommands []string = []string{"search", "install", "run", "help"}
+	validCommands []string = []string{"search", "install", "run", "help", "list"}
 )
 
 type Client struct {
@@ -110,14 +110,14 @@ func (dwc *Client) Install(query, queryType string) bool {
 	for _, file := range files {
 		dirName := strings.Replace(file.Filename, ".zip", "", 1)
 		if dwc.packageManager.Contains(dirName, file.IdGamesUrl) {
-			fmt.Print("skipping " + dirName + " it is already installed")
+			fmt.Println("skipping " + dirName + " it is already installed")
 			break
 		}
 		for _, mirror := range mirrors {
 			filepath := strings.Replace(file.IdGamesUrl, IDGAMESSUBSTR, "", 1)
 			endpointUri := fmt.Sprintf("http://%s/idgames/%s", mirror, filepath)
 
-			fmt.Print("Attempting install from ", endpointUri)
+			fmt.Println("Attempting install from ", endpointUri)
 
 			content, err := dwc.httpClient.Get(endpointUri)
 			helpers.HandleFatalErr(err, "failed to retrieve file contents from mirror", mirror, "-")
@@ -145,6 +145,12 @@ func (dwc *Client) Install(query, queryType string) bool {
 		}
 	}
 	return false
+}
+
+func (dwc *Client) List() {
+	for _, entry := range dwc.packageManager.entries {
+		fmt.Println("Package - ", entry)
+	}
 }
 
 func (dwc *Client) ValidateCommand(cmd string) {
