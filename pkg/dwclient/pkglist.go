@@ -2,6 +2,7 @@ package dwclient
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"strings"
 
@@ -73,4 +74,18 @@ func (pm *packageManager) GetFilePath(filename string) string {
 		}
 	}
 	return ""
+}
+
+func (pm *packageManager) AddAlias(target, alias string) {
+	for i, entry := range pm.entries {
+		if entry.Name == target {
+			if helpers.Contains(entry.Aliases, alias) {
+				fmt.Println("Skipping - known alias")
+			}
+			entry.Aliases = append(entry.Aliases, alias)
+			pm.entries[i] = entry
+		}
+	}
+
+	pm.Commit()
 }

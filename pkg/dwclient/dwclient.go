@@ -19,7 +19,7 @@ const LOCALPATH = "/home/matt/dwpm/"
 
 var (
 	mirrors       []string = []string{"mirrors.syringanetworks.net", "www.quaddicted.com", "ftpmirror1.infania.net"}
-	validCommands []string = []string{"search", "install", "run", "help", "list"}
+	validCommands []string = []string{"search", "install", "run", "help", "list", "alias"}
 )
 
 type Client struct {
@@ -149,8 +149,13 @@ func (dwc *Client) Install(query, queryType string) bool {
 
 func (dwc *Client) List() {
 	for _, entry := range dwc.packageManager.entries {
-		fmt.Println("Package - ", entry)
+		fmt.Printf("Package - Name: %s, Dir: %s, Uri: %s, Aliases: %s\n", entry.Name, entry.Dir, entry.Uri, entry.Aliases)
 	}
+}
+
+func (dwc *Client) AddAlias(target, alias string) {
+	dwc.packageManager.AddAlias(target, alias)
+	dwc.packageManager.Commit()
 }
 
 func (dwc *Client) ValidateCommand(cmd string) {

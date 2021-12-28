@@ -60,6 +60,15 @@ func main() {
 		client.SearchAndPrint(query, queryType)
 	} else if command == "list" {
 		client.List()
+	} else if command == "alias" {
+		if len(args) < 4 {
+			fmt.Println("invalid alias command. proper use is\n    dwpm alias target alias\nIf you need help, you can run\n    dwpm help\nfor more information")
+			os.Exit(0)
+		}
+		target := args[2]
+		alias := args[3]
+
+		client.AddAlias(target, alias)
 	}
 
 }
