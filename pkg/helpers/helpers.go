@@ -18,6 +18,7 @@ func HandleFatalErr(err error, msgs ...string) {
 }
 
 func Unzip(src, dest string) error {
+	fmt.Printf("unzipping %s to %s \n", src, dest)
 	r, err := zip.OpenReader(src)
 	if err != nil {
 		return err

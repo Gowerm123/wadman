@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 
 	"github.com/gowerm123/wadman/pkg/helpers"
 )
@@ -91,8 +92,12 @@ func (pm *packageManager) AddAlias(target, alias string) {
 func (pm *packageManager) Remove(target string) {
 	index := pm.findEntry(target)
 
-	pm.entries = append(pm.entries[:index], pm.entries[index:]...)
-	fmt.Println(pm.entries)
+	dir := pm.entries[index].Dir
+
+	helpers.HandleFatalErr(os.RemoveAll(dir))
+
+	pm.entries = append(pm.entries[:index], pm.entries[index+1:]...)
+	helpers.HandleFatalErr(pm.Commit())
 }
 
 func (pm *packageManager) LookupIwad(target string) string {

@@ -1,4 +1,4 @@
-BASEPATH=$1
+BASEPATH="/usr/share/wadman/"
 CONFIGPATH="/usr/share/.wadmanConfig"
 
 go build .

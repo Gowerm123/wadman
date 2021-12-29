@@ -35,23 +35,30 @@ func main() {
 		handleAliasCommand()
 	} else if command == "register" {
 		handleRegisterCommand()
+	} else if command == "help" {
+		fmt.Println("WadMan supports eight basic commands\n\n  - `search QUERY <QUERYTYPE>` - Searches the IdGames archive for the specified QUERY,QUERYTYPE is optional, and defaults to filename. Possible options are filename, title, author, email, description, credits, editors, textfile.\n  - `install QUERY <QUERYTYPE>` - First performs a `search QUERY <QUERYTYPE>` then installs the first found file. It is recommended that you search based on filename here to narrow down overlapping projects.\b  - `list` - Lists all currently installed wad archives. Information printed is name of archive, installed directory, idGamesUrl, and Aliases.\n  - `remove NAME` - Removes the archive with the given name. If two are found, the first will be deleted.\n  - `run` - There are two ways to call `run`. You can either call `run ALIAS/NAME` or `run IWAD ALIAS/NAME`. Note that you must include the IWAD if you have not registered an IWAD to the given `ALIAS/NAME`.\n  - `register NAME IWAD` - Assigns the IWAD to the archive entry in the `pkglist` associated with NAME. This is used for the `run` command so you do not have to specify IWADs everytime you load a PWAD.\n  - `configure` - Runs you through a prompt to fill out the configuration file. The file is a simple JSON file found at `/usr/share/.wadmanConfig`\n  - `help` - Prints this text")
+	} else if command == "configure" {
+		handleConfigureCommand()
+	} else if command == "remove" {
+		handleRemoveCommand()
 	}
 
 }
 
 func handleInstallCommand() {
 	enforceRoot("install")
-	args := collectArgs(2, 1)
-	query := args[1]
-	queryType := getOptional(args, 2, "filename")
-	client.Install(query, queryType)
+	args := collectArgs(1, 1)
+	query := args[0]
+	queryType := getOptional(args, 1, "filename")
+	if client.Install(query, queryType) {
+		fmt.Println("Success!")
+	}
 }
 
 func handleRunCommand() {
-	args := collectArgs(2, 1)
-	firstArg := args[1]
-	secondArg := getOptional(args, 2, "")
-
+	args := collectArgs(1, 1)
+	firstArg := args[0]
+	secondArg := getOptional(args, 1, "")
 	var iwad, file string
 	if secondArg == "" {
 		file = firstArg
@@ -59,6 +66,11 @@ func handleRunCommand() {
 	} else {
 		file = secondArg
 		iwad = firstArg
+	}
+
+	//Check if iwad path exists, if not, assume alias
+	if _, err := os.Stat(iwad); err == os.ErrNotExist {
+		iwad = client.LookupWADAlias(iwad)
 	}
 
 	launcher := client.Configuration.Launcher
@@ -104,15 +116,38 @@ func handleRegisterCommand() {
 	client.RegisterIwad(target, iwad)
 }
 
+func handleConfigureCommand() {
+	enforceRoot("configure")
+
+	var launcher, launchArgs, iwads, installDir string
+	fmt.Println("Doom Launcher command (default is gzdoom)")
+	fmt.Scanln(&launcher)
+
+	fmt.Println("Extra launch arguments (Space seperated Example \"fast respawn nomonsters\")")
+	fmt.Scanln(&launchArgs)
+
+	fmt.Println("IWADs (See the README), enter as space seperated key=value pairs. Example doom2=/path/to/DOOM2.WAD plutonia=/path/to/PLUTONIA.WAD")
+	fmt.Scanln(&iwads)
+
+	fmt.Println("Installation directory for wad archives (default is /usr/share/wadman/)")
+	fmt.Scanln(&installDir)
+
+	idGamesClient.UpdateConfigs(launcher, launchArgs, iwads, installDir)
+}
+
+func handleRemoveCommand() {
+	enforceRoot("remove")
+	target := collectArgs(1, 0)[0]
+
+	client.Remove(target)
+}
+
 func collectArgs(required, optional int) []string {
 	var args []string
-	for i := 1; i <= required+1; i++ {
+	for i := 2; i < required+2; i++ {
 		args = append(args, os.Args[i])
 	}
-	for i := required + 1; i < required+optional; i++ {
-		if i >= len(os.Args) {
-			break
-		}
+	for i := required + 3; i < required+optional && i < len(os.Args); i++ {
 		args = append(args, os.Args[i])
 	}
 

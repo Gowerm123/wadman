@@ -18,7 +18,7 @@ const idGamesSubstr = "idgames://"
 
 var (
 	mirrors       []string = []string{"mirrors.syringanetworks.net", "www.quaddicted.com", "ftpmirror1.infania.net"}
-	validCommands []string = []string{"search", "install", "run", "help", "list", "alias", "register"}
+	validCommands []string = []string{"search", "install", "run", "help", "list", "alias", "register", "configure", "remove"}
 )
 
 type Client struct {
@@ -112,27 +112,35 @@ func (dwc *Client) dial(action string, params map[string]string) (Payload, error
 
 func (dwc *Client) Install(query, queryType string) bool {
 	files := dwc.search(query, queryType)
-	for _, file := range files {
-		dirName := strings.Replace(file.Filename, ".zip", "", 1)
-		if dwc.packageManager.Contains(dirName, file.IdGamesUrl) {
-			fmt.Println("skipping " + dirName + " it is already installed")
-			break
-		}
-		for _, mirror := range mirrors {
-			installPath := saveContentToZipFile(file, mirror, dwc)
 
-			unzipped := fmt.Sprintf("%s%s", dwc.Configuration.InstallDir, dirName)
-			err := helpers.Unzip(installPath, unzipped)
-			helpers.HandleFatalErr(err, "failed to unzip archive", installPath, "-")
-
-			err = os.Remove(installPath)
-			helpers.HandleFatalErr(err, "failed to delete zip archive", installPath, "-")
-
-			dwc.packageManager.NewEntry(dirName, unzipped, file.IdGamesUrl)
-
-			return true
-		}
+	if len(files) == 0 {
+		fmt.Print("Entry not found for search query, try a different QUERYTYPE?")
+		os.Exit(0)
 	}
+
+	file := files[0]
+
+	dirName := strings.Replace(file.Filename, ".zip", "", 1)
+	if dwc.packageManager.Contains(dirName, file.IdGamesUrl) {
+		fmt.Println("skipping " + dirName + " it is already installed")
+		return false
+	}
+	for _, mirror := range mirrors {
+		installPath := saveContentToZipFile(file, mirror, dwc)
+
+		unzipped := fmt.Sprintf("%s%s", dwc.Configuration.InstallDir, dirName)
+		err := helpers.Unzip(installPath, unzipped)
+		helpers.HandleFatalErr(err, "failed to unzip archive", installPath, "-")
+
+		fmt.Println("Removing unnnecessary zip archive")
+		err = os.Remove(installPath)
+		helpers.HandleFatalErr(err, "failed to delete zip archive", installPath, "-")
+
+		dwc.packageManager.NewEntry(dirName, unzipped, file.IdGamesUrl)
+
+		return true
+	}
+
 	return false
 }
 
@@ -176,6 +184,8 @@ func saveContentToZipFile(file apiFile, mirror string, dwc *Client) string {
 	err = os.WriteFile(fmtdLocalPath, bytes, 0644)
 	helpers.HandleFatalErr(err, "failed to write file -")
 
+	fmt.Printf("Successfully wrote contents to %s\n", fmtdLocalPath)
+
 	return fmtdLocalPath
 }
 
@@ -185,4 +195,8 @@ func (dwc *Client) LookupIwad(name string) string {
 
 func (dwc *Client) RegisterIwad(name, iwad string) {
 	dwc.packageManager.RegisterIwad(name, iwad)
+}
+
+func (dwc *Client) LookupWADAlias(alias string) string {
+	return dwc.Configuration.IWads[alias]
 }
