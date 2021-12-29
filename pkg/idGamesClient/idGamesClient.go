@@ -42,7 +42,7 @@ type apiFile struct {
 	Title       string  `xml:"title"`
 	Dir         string  `xml:"dir"`
 	Filename    string  `xml:"filename"`
-	Size        int64   `xml:size"`
+	Size        int64   `xml:"size"`
 	Age         int64   `xml:"age"`
 	Date        string  `xml:"date"`
 	Description string  `xml:"description"`

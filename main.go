@@ -4,14 +4,17 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"os/user"
 	"strings"
 
+	"github.com/gowerm123/wadman/pkg/helpers"
 	"github.com/gowerm123/wadman/pkg/idGamesClient"
 )
 
 var client idGamesClient.Client
 
 func main() {
+
 	args := os.Args
 
 	client = idGamesClient.New()
@@ -37,6 +40,7 @@ func main() {
 }
 
 func handleInstallCommand() {
+	enforceRoot("install")
 	args := collectArgs(2, 1)
 	query := args[1]
 	queryType := getOptional(args, 2, "filename")
@@ -68,7 +72,7 @@ func handleSearchCommand() {
 	args := os.Args
 	var queryType string = "filename"
 	if len(args) < 3 {
-		fmt.Println("invalid search command. proper use is\n    dwpm search QUERY (optional)QUERYTYPE\nIf you need help, you can run\n    dwpm help\nfor more information")
+		fmt.Println("invalid search command. proper use is\n    wadman search QUERY (optional)QUERYTYPE\nIf you need help, you can run\n    wadman help\nfor more information")
 		os.Exit(0)
 	} else if len(args) == 4 {
 		queryType = args[3]
@@ -79,9 +83,10 @@ func handleSearchCommand() {
 }
 
 func handleAliasCommand() {
+	enforceRoot("alias")
 	args := os.Args
 	if len(args) < 4 {
-		fmt.Println("invalid alias command. proper use is\n    dwpm alias target alias\nIf you need help, you can run\n    dwpm help\nfor more information")
+		fmt.Println("invalid alias command. proper use is\n    wadman alias target alias\nIf you need help, you can run\n    wadman help\nfor more information")
 		os.Exit(0)
 	}
 	target := args[2]
@@ -119,4 +124,18 @@ func getOptional(args []string, index int, defaultVal string) string {
 		return defaultVal
 	}
 	return args[index]
+}
+
+func enforceRoot(cmd string) {
+	if !isRoot() {
+		fmt.Printf("please execute wadman as root when using the %s command\n", cmd)
+		os.Exit(1)
+	}
+}
+
+func isRoot() bool {
+	currentUser, err := user.Current()
+	helpers.HandleFatalErr(err)
+
+	return currentUser.Username == "root"
 }

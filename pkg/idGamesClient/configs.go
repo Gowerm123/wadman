@@ -7,13 +7,13 @@ import (
 	"github.com/gowerm123/wadman/pkg/helpers"
 )
 
-var path string = "/usr/share/.dwpmConfig"
+var path string = "/usr/share/.wadmanConfig"
 
 type Configuration struct {
 	Launcher   string            `json:"launcher"`
 	LaunchArgs []string          `json:"launchArgs"`
 	IWads      map[string]string `json:"iwads"`
-	InstallDir string            `json:"installDir`
+	InstallDir string            `json:"installDir"`
 }
 
 func SetConfigPath(customPath string) {

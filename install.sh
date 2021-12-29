@@ -1,8 +1,8 @@
 BASEPATH=$1
-CONFIGPATH='/usr/share/.dwpmConfig'
+CONFIGPATH="/usr/share/.wadmanConfig"
 
 go build .
-sudo cp dwpm /usr/bin/dwpm
+sudo cp wadman /usr/bin/wadman
 sudo rm -rf $BASEPATH
 
 sudo mkdir $BASEPATH
