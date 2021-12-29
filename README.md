@@ -7,7 +7,7 @@ WadMan is a wad archive manager that automatically downloads from the [DoomWorld
 ```
 
 ## Commands
-WadMan supports eight basic commands
+WadMan supports nine basic commands
 
  - `search QUERY <QUERYTYPE>` - Searches the IdGames archive for the specified QUERY,QUERYTYPE is optional, and defaults to filename. Possible options are filename, title, author, email, description, credits, editors, textfile.
  - `install QUERY <QUERYTYPE>` - First performs a `search QUERY <QUERYTYPE>` then installs the first found file. It is recommended that you search based on filename here to narrow down overlapping projects.
@@ -17,3 +17,4 @@ WadMan supports eight basic commands
  - `register NAME IWAD` - Assigns the IWAD to the archive entry in the `pkglist` associated with NAME. This is used for the `run` command so you do not have to specify IWADs everytime you load a PWAD.
  - `configure` - Runs you through a prompt to fill out the configuration file. The file is a simple JSON file found at `/usr/share/.wadmanConfig`
  - `help` - Prints this text
+ - `alias TARGET ALIAS` - Assigns an alias to the given archive. This alias can be used when performing the `run` command.

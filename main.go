@@ -69,13 +69,13 @@ func handleRunCommand() {
 	}
 
 	//Check if iwad path exists, if not, assume alias
-	if _, err := os.Stat(iwad); err == os.ErrNotExist {
+	if _, err := os.Stat(iwad); err != nil {
 		iwad = client.LookupWADAlias(iwad)
 	}
 
 	launcher := client.Configuration.Launcher
 	basePath := client.Configuration.InstallDir
-
+	fmt.Println(iwad)
 	command := exec.Command(launcher, "-IWAD", iwad, "-file", basePath+file, "&")
 	command.Output()
 }
@@ -147,7 +147,7 @@ func collectArgs(required, optional int) []string {
 	for i := 2; i < required+2; i++ {
 		args = append(args, os.Args[i])
 	}
-	for i := required + 3; i < required+optional && i < len(os.Args); i++ {
+	for i := required + 2; i <= required+optional+2 && i < len(os.Args); i++ {
 		args = append(args, os.Args[i])
 	}
 
