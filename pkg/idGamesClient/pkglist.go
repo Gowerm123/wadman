@@ -4,9 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"strings"
 
-	"github.com/gowerm/dwpm/pkg/helpers"
+	"github.com/gowerm123/wadman/pkg/helpers"
 )
 
 type packageManager struct {
@@ -20,6 +19,7 @@ type packageEntry struct {
 	Dir     string   `json:"dir"`
 	Uri     string   `json:"uri"`
 	Aliases []string `json:"aliases"`
+	Iwad    string   `json:"iwad"`
 }
 
 func newPackageManager(path string) packageManager {
@@ -40,6 +40,9 @@ func (pm *packageManager) load() {
 }
 
 func (pm *packageManager) NewEntry(filename, path, url string) {
+	if pm.Exists(url) {
+		return
+	}
 	pm.entries = append(pm.entries, packageEntry{Name: filename, Dir: path, Uri: url})
 	helpers.HandleFatalErr(pm.Commit())
 }
@@ -67,35 +70,72 @@ func (pm *packageManager) Commit() error {
 	return nil
 }
 
-func (pm *packageManager) GetFilePath(filename string) string {
-	body, err := ioutil.ReadFile(pm.path)
-	helpers.HandleFatalErr(err, "failed to read pkglist")
-
-	entries := strings.Split(string(body), "\n")
-
-	for _, entry := range entries {
-		spl := strings.Split(entry, " ")
-		if spl[0] == filename {
-			return spl[1]
-		}
-	}
-	return ""
+func (pm *packageManager) GetFilePath(target string) string {
+	index := pm.findEntry(target)
+	return pm.entries[index].Dir
 }
 
 func (pm *packageManager) AddAlias(target, alias string) {
-	for i, entry := range pm.entries {
-		if entry.Name == target {
-			if helpers.Contains(entry.Aliases, alias) {
-				fmt.Println("Skipping - known alias")
-			}
-			entry.Aliases = append(entry.Aliases, alias)
-			pm.entries[i] = entry
-		}
+	index := pm.findEntry(target)
+
+	if helpers.Contains(pm.entries[index].Aliases, alias) {
+		fmt.Println("Alias already known")
+		return
 	}
+
+	pm.entries[index].Aliases = append(pm.entries[index].Aliases, alias)
 
 	helpers.HandleFatalErr(pm.Commit())
 }
 
 func (pm *packageManager) Remove(target string) {
+	index := pm.findEntry(target)
 
+	pm.entries = append(pm.entries[:index], pm.entries[index:]...)
+	fmt.Println(pm.entries)
+}
+
+func (pm *packageManager) LookupIwad(target string) string {
+	index := pm.findEntry(target)
+	if index == -1 {
+		index = pm.findByAlias(target)
+	}
+
+	return pm.entries[index].Iwad
+}
+
+func (pm *packageManager) RegisterIwad(target, iwad string) {
+	index := pm.findEntry(target)
+
+	pm.entries[index].Iwad = iwad
+
+	helpers.HandleFatalErr(pm.Commit())
+}
+
+func (pm *packageManager) findEntry(target string) int {
+	for i, entry := range pm.entries {
+		if entry.Name == target || helpers.Contains(entry.Aliases, target) {
+			return i
+		}
+	}
+	return -1
+}
+
+func (pm *packageManager) findByAlias(target string) int {
+	for i, entry := range pm.entries {
+		if helpers.Contains(entry.Aliases, target) {
+			return i
+		}
+	}
+	return -1
+}
+
+//Existence lookups should be performed on idgames url to ensure package distinction
+func (pm *packageManager) Exists(url string) bool {
+	for _, entry := range pm.entries {
+		if entry.Uri == url {
+			return true
+		}
+	}
+	return false
 }

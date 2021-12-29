@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/gowerm/dwpm/pkg/idGamesClient"
+	"github.com/gowerm123/wadman/pkg/idGamesClient"
 )
 
 var client idGamesClient.Client
@@ -30,29 +30,37 @@ func main() {
 		client.List()
 	} else if command == "alias" {
 		handleAliasCommand()
+	} else if command == "register" {
+		handleRegisterCommand()
 	}
 
 }
 
 func handleInstallCommand() {
-
+	args := collectArgs(2, 1)
+	query := args[1]
+	queryType := getOptional(args, 2, "filename")
 	client.Install(query, queryType)
 }
 
 func handleRunCommand() {
-	args := os.Args
-	if len(args) < 4 {
-		fmt.Println("invalid run command. proper use is\n    dwpm run IWAD TARGET\nIf you need help, you can run\n    dwpm help\nfor more information")
-		os.Exit(0)
-	}
+	args := collectArgs(2, 1)
+	firstArg := args[1]
+	secondArg := getOptional(args, 2, "")
 
-	iwad := args[2]
-	target := args[3]
+	var iwad, file string
+	if secondArg == "" {
+		file = firstArg
+		iwad = client.LookupIwad(file)
+	} else {
+		file = secondArg
+		iwad = firstArg
+	}
 
 	launcher := client.Configuration.Launcher
 	basePath := client.Configuration.InstallDir
 
-	command := exec.Command(launcher, "-IWAD", iwad, "-file", basePath+target, "&")
+	command := exec.Command(launcher, "-IWAD", iwad, "-file", basePath+file, "&")
 	command.Output()
 }
 
@@ -82,9 +90,18 @@ func handleAliasCommand() {
 	client.AddAlias(target, alias)
 }
 
+func handleRegisterCommand() {
+	args := collectArgs(2, 0)
+
+	target := args[0]
+	iwad := args[1]
+
+	client.RegisterIwad(target, iwad)
+}
+
 func collectArgs(required, optional int) []string {
 	var args []string
-	for i := 1; i < required; i++ {
+	for i := 1; i <= required+1; i++ {
 		args = append(args, os.Args[i])
 	}
 	for i := required + 1; i < required+optional; i++ {
@@ -95,4 +112,11 @@ func collectArgs(required, optional int) []string {
 	}
 
 	return args
+}
+
+func getOptional(args []string, index int, defaultVal string) string {
+	if len(args) <= index {
+		return defaultVal
+	}
+	return args[index]
 }

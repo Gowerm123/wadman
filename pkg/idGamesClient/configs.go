@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 
-	"github.com/gowerm/dwpm/pkg/helpers"
+	"github.com/gowerm123/wadman/pkg/helpers"
 )
 
 var path string = "/usr/share/.dwpmConfig"

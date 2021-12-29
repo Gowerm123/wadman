@@ -10,7 +10,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/gowerm/dwpm/pkg/helpers"
+	"github.com/gowerm123/wadman/pkg/helpers"
 )
 
 const idGamesBaseURI = "http://www.doomworld.com/idgames/api/api.php"
@@ -18,7 +18,7 @@ const idGamesSubstr = "idgames://"
 
 var (
 	mirrors       []string = []string{"mirrors.syringanetworks.net", "www.quaddicted.com", "ftpmirror1.infania.net"}
-	validCommands []string = []string{"search", "install", "run", "help", "list", "alias"}
+	validCommands []string = []string{"search", "install", "run", "help", "list", "alias", "register"}
 )
 
 type Client struct {
@@ -112,7 +112,6 @@ func (dwc *Client) dial(action string, params map[string]string) (Payload, error
 
 func (dwc *Client) Install(query, queryType string) bool {
 	files := dwc.search(query, queryType)
-
 	for _, file := range files {
 		dirName := strings.Replace(file.Filename, ".zip", "", 1)
 		if dwc.packageManager.Contains(dirName, file.IdGamesUrl) {
@@ -178,4 +177,12 @@ func saveContentToZipFile(file apiFile, mirror string, dwc *Client) string {
 	helpers.HandleFatalErr(err, "failed to write file -")
 
 	return fmtdLocalPath
+}
+
+func (dwc *Client) LookupIwad(name string) string {
+	return dwc.packageManager.LookupIwad(name)
+}
+
+func (dwc *Client) RegisterIwad(name, iwad string) {
+	dwc.packageManager.RegisterIwad(name, iwad)
 }
