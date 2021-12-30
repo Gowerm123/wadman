@@ -2,8 +2,8 @@ package idGamesClient
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 
 	"github.com/gowerm123/wadman/pkg/helpers"
@@ -73,6 +73,11 @@ func (pm *packageManager) Commit() error {
 
 func (pm *packageManager) GetFilePath(target string) string {
 	index := pm.findEntry(target)
+
+	if index == -1 {
+		return ""
+	}
+
 	return pm.entries[index].Dir
 }
 
@@ -80,7 +85,7 @@ func (pm *packageManager) AddAlias(target, alias string) {
 	index := pm.findEntry(target)
 
 	if helpers.Contains(pm.entries[index].Aliases, alias) {
-		fmt.Println("Alias already known")
+		log.Println("Alias already known")
 		return
 	}
 

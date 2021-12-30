@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -87,7 +88,7 @@ func (dwc *Client) SearchAndPrint(query, queryType string) {
 }
 
 func formatAndPrint(file apiFile) {
-	fmt.Printf("File Found\n    Filename: %s\n    Title: %s,\n    Author: %s,\n    Date: %s\n    Url: %s\n", file.Filename, file.Title, file.Author, file.Date, file.IdGamesUrl)
+	log.Printf("File Found\n    Filename: %s\n    Title: %s,\n    Author: %s,\n    Date: %s\n    Url: %s\n", file.Filename, file.Title, file.Author, file.Date, file.IdGamesUrl)
 }
 
 func (dwc *Client) dial(action string, params map[string]string) (Payload, error) {
@@ -114,7 +115,7 @@ func (dwc *Client) Install(query, queryType string) bool {
 	files := dwc.search(query, queryType)
 
 	if len(files) == 0 {
-		fmt.Print("Entry not found for search query, try a different QUERYTYPE?")
+		log.Print("Entry not found for search query, try a different QUERYTYPE?")
 		os.Exit(0)
 	}
 
@@ -122,7 +123,7 @@ func (dwc *Client) Install(query, queryType string) bool {
 
 	dirName := strings.Replace(file.Filename, ".zip", "", 1)
 	if dwc.packageManager.Contains(dirName, file.IdGamesUrl) {
-		fmt.Println("skipping " + dirName + " it is already installed")
+		log.Println("skipping " + dirName + " it is already installed")
 		return false
 	}
 	for _, mirror := range mirrors {
@@ -132,7 +133,7 @@ func (dwc *Client) Install(query, queryType string) bool {
 		err := helpers.Unzip(installPath, unzipped)
 		helpers.HandleFatalErr(err, "failed to unzip archive", installPath, "-")
 
-		fmt.Println("Removing unnnecessary zip archive")
+		log.Println("Removing unnnecessary zip archive")
 		err = os.Remove(installPath)
 		helpers.HandleFatalErr(err, "failed to delete zip archive", installPath, "-")
 
@@ -146,7 +147,7 @@ func (dwc *Client) Install(query, queryType string) bool {
 
 func (dwc *Client) List() {
 	for _, entry := range dwc.packageManager.entries {
-		fmt.Printf("Package - Name: %s, Dir: %s, Uri: %s, Aliases: %s\n", entry.Name, entry.Dir, entry.Uri, entry.Aliases)
+		log.Printf("Package - Name: %s, Dir: %s, Uri: %s, Aliases: %s\n", entry.Name, entry.Dir, entry.Uri, entry.Aliases)
 	}
 }
 
@@ -169,7 +170,7 @@ func saveContentToZipFile(file apiFile, mirror string, dwc *Client) string {
 	filepath := strings.Replace(file.IdGamesUrl, idGamesSubstr, "", 1)
 	endpointUri := fmt.Sprintf("http://%s/idgames/%s", mirror, filepath)
 
-	fmt.Println("Attempting install from ", endpointUri)
+	log.Println("Attempting install from ", endpointUri)
 
 	content, err := dwc.httpClient.Get(endpointUri)
 	helpers.HandleFatalErr(err, "failed to retrieve file contents from mirror", mirror, "-")
@@ -184,7 +185,7 @@ func saveContentToZipFile(file apiFile, mirror string, dwc *Client) string {
 	err = os.WriteFile(fmtdLocalPath, bytes, 0644)
 	helpers.HandleFatalErr(err, "failed to write file -")
 
-	fmt.Printf("Successfully wrote contents to %s\n", fmtdLocalPath)
+	log.Printf("Successfully wrote contents to %s\n", fmtdLocalPath)
 
 	return fmtdLocalPath
 }

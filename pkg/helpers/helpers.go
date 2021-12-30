@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,13 +13,13 @@ import (
 
 func HandleFatalErr(err error, msgs ...string) {
 	if err != nil {
-		fmt.Println(msgs, err.Error())
+		log.Println(msgs, err.Error())
 		os.Exit(1)
 	}
 }
 
 func Unzip(src, dest string) error {
-	fmt.Printf("unzipping %s to %s \n", src, dest)
+	log.Printf("unzipping %s to %s \n", src, dest)
 	r, err := zip.OpenReader(src)
 	if err != nil {
 		return err
