@@ -37,7 +37,7 @@ func UpdateConfigs(launcher, args, iwads, installPath string) {
 		config.Launcher = "gzdoom"
 	}
 	if args != "" {
-		config.LaunchArgs = strings.Split(args, " ")
+		config.LaunchArgs = strings.Split(args, ",")
 	}
 	if iwads != "" {
 		config.IWads = convertToMap(iwads)
@@ -58,7 +58,7 @@ func CommitConfig(config Configuration) {
 }
 
 func convertToMap(str string) map[string]string {
-	spl := strings.Split(str, " ")
+	spl := strings.Split(str, ",")
 
 	var mp map[string]string = make(map[string]string)
 	for _, pair := range spl {

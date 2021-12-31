@@ -125,10 +125,10 @@ func handleConfigureCommand() {
 	fmt.Println("Doom Launcher command (default is gzdoom)")
 	fmt.Scanln(&launcher)
 
-	fmt.Println("Extra launch arguments (Space seperated Example \"fast respawn nomonsters\")")
+	fmt.Println("Extra launch arguments (comma seperated, Example \"fast,respawn,nomonsters\")")
 	fmt.Scanln(&launchArgs)
 
-	fmt.Println("IWADs (See the README), enter as space seperated key=value pairs. Example doom2=/path/to/DOOM2.WAD plutonia=/path/to/PLUTONIA.WAD")
+	fmt.Println("IWADs (See the README), enter as comma seperated key=value pairs. Example doom2=/path/to/DOOM2.WAD,plutonia=/path/to/PLUTONIA.WAD")
 	fmt.Scanln(&iwads)
 
 	fmt.Println("Installation directory for wad archives (default is /usr/share/wadman/)")
