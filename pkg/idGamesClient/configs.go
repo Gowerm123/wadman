@@ -9,7 +9,7 @@ import (
 	"github.com/gowerm123/wadman/pkg/helpers"
 )
 
-var path string = "/usr/share/.wadmanConfig"
+var path string = "/usr/share/wadman/.config"
 
 type Configuration struct {
 	Launcher   string            `json:"launcher"`

@@ -109,6 +109,7 @@ func handleAliasCommand() {
 }
 
 func handleRegisterCommand() {
+	enforceRoot("register")
 	args := collectArgs(2, 0)
 
 	target := args[0]
