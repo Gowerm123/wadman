@@ -9,7 +9,9 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/gowerm123/wadman/pkg/helpers"
 )
@@ -88,6 +90,7 @@ func (dwc *Client) SearchAndPrint(query, queryType string) {
 }
 
 func formatAndPrint(file apiFile) {
+	file = sanitizeFile(file)
 	log.Printf("File Found\n    Filename: %s\n    Title: %s,\n    Author: %s,\n    Date: %s\n    Url: %s\n", file.Filename, file.Title, file.Author, file.Date, file.IdGamesUrl)
 }
 
@@ -114,12 +117,31 @@ func (dwc *Client) dial(action string, params map[string]string) (Payload, error
 func (dwc *Client) Install(query, queryType string) bool {
 	files := dwc.search(query, queryType)
 
+	var choice int = 0
+
 	if len(files) == 0 {
 		log.Print("Entry not found for search query, try a different QUERYTYPE?")
 		os.Exit(0)
+	} else if len(files) > 1 {
+		log.Println("Multiple files found, please choose...")
+		for it, file := range files {
+			file = sanitizeFile(file)
+			fmt.Printf("%d) %s, by %s, file - %s\n", it, file.Title, file.Author, file.Filename)
+		}
+		log.Printf("Choice (0 - %d): ", len(files))
+
+		var (
+			tmpString string
+			err       error
+		)
+
+		fmt.Scan(&tmpString)
+
+		choice, err = strconv.Atoi(tmpString)
+		helpers.HandleFatalErr(err)
 	}
 
-	file := files[0]
+	file := files[choice]
 
 	dirName := strings.Replace(file.Filename, ".zip", "", 1)
 	if dwc.packageManager.Contains(dirName, file.IdGamesUrl) {
@@ -200,4 +222,33 @@ func (dwc *Client) RegisterIwad(name, iwad string) {
 
 func (dwc *Client) LookupWADAlias(alias string) string {
 	return dwc.Configuration.IWads[alias]
+}
+
+func sanitize(s string) string {
+	var placeholder string = s
+
+	for _, rne := range s {
+		if !unicode.IsGraphic(rne) {
+			placeholder = strings.ReplaceAll(placeholder, string(rne), "")
+		}
+	}
+	return placeholder
+}
+
+func sanitizeFile(file apiFile) apiFile {
+	var placeholder apiFile
+
+	placeholder.Age = file.Age
+	placeholder.Author = sanitize(file.Author)
+	placeholder.Date = sanitize(file.Date)
+	placeholder.Description = sanitize(file.Description)
+	placeholder.Dir = sanitize(file.Dir)
+	placeholder.Filename = sanitize(file.Filename)
+	placeholder.IdGamesUrl = sanitize(file.IdGamesUrl)
+	placeholder.Rating = file.Rating
+	placeholder.Size = file.Size
+	placeholder.Title = sanitize(file.Title)
+	placeholder.Url = sanitize(file.Url)
+
+	return placeholder
 }

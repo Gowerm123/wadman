@@ -14,6 +14,10 @@ import (
 
 var client idGamesClient.Client
 
+func init() {
+	log.SetFlags(0)
+}
+
 func main() {
 
 	args := os.Args
