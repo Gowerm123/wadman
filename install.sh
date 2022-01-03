@@ -16,7 +16,7 @@ fi
 
 
 echo "building binary and copying to /usr/bin/wadman"
-go build .
+CGO_ENABLED=0 GOOS=linux go build .
 sudo cp wadman /usr/bin/wadman
 
 
