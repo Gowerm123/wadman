@@ -3,7 +3,7 @@ WadMan is a wad archive manager that automatically downloads from the [DoomWorld
 ```
     git clone https://github.com/Gowerm123/wadman.git
     cd wadman
-    sudo ./install.sh
+    make install
 ```
 
 ## Commands
