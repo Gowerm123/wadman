@@ -1,6 +1,6 @@
 # Custom DOOM WADs (for the linux DOOMer)
 
-Build status (main) - [build badge](https://github.com/gowerm123/wadman/actions/workflows/go.yml/badge.svg)
+Build status (main) - ![build badge](https://github.com/gowerm123/wadman/actions/workflows/go.yml/badge.svg)
 
 WadMan is a wad archive manager that automatically downloads from the [DoomWorld IdGames](https://www.doomworld.com/idgames/) database. To install wadman, you will need `git`, and `go` v1.17+ installed. Then, you can clone this repository, and install.
 ```
