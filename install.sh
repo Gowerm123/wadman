@@ -18,6 +18,7 @@ fi
 echo "building binary and copying to /usr/bin/wadman"
 CGO_ENABLED=0 GOOS=linux go build .
 sudo cp wadman /usr/bin/wadman
+sudo cp README.md /usr/share/wadman/README.md
 
 
 echo "writing to config file"

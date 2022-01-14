@@ -224,6 +224,83 @@ func (dwc *Client) LookupWADAlias(alias string) string {
 	return dwc.Configuration.IWads[alias]
 }
 
+func (dwc *Client) CollectPWads(dir string) [2]string {
+	pwads := dwc.searchForWads(dir)
+
+	targets := [2]string{}
+
+	if len(pwads) > 0 {
+		log.Println("Found some files in that archive:")
+		for index, pwad := range pwads {
+			log.Printf("%d) %s", index, pwad)
+		}
+
+		var selections string
+		log.Print("Choose up to 2 (seperated by a comma): ")
+		fmt.Scanln(&selections)
+
+		if selections != "" {
+			spl := strings.Split(selections, ",")
+
+			if len(spl) > 1 {
+				targetIndex, err := strconv.Atoi(spl[1])
+				helpers.HandleFatalErr(err)
+
+				targets[1] = pwads[targetIndex]
+			}
+
+			targetIndex, err := strconv.Atoi(spl[0])
+			helpers.HandleFatalErr(err)
+
+			targets[0] = pwads[targetIndex]
+		}
+	}
+
+	return targets
+}
+
+func (dwc *Client) searchForWads(dir string) []string {
+	var buffer []string
+	var wads []string
+
+	push(&buffer, dir)
+
+	for len(buffer) > 0 {
+		path := pop(&buffer)
+
+		entries, err := os.ReadDir(path)
+		helpers.HandleFatalErr(err)
+
+		for _, entry := range entries {
+			if entry.IsDir() {
+				push(&buffer, fmt.Sprintf("%s/%s", path, entry.Name()))
+			} else if isPWad(entry.Name()) {
+				push(&wads, fmt.Sprintf("%s/%s", path, entry.Name()))
+			}
+		}
+	}
+
+	return wads
+}
+
+func push(buffer *[]string, item string) {
+	*buffer = append(*buffer, item)
+}
+
+func pop(buffer *[]string) string {
+	item := (*buffer)[len(*buffer)-1]
+
+	*buffer = (*buffer)[:len(*buffer)-1]
+
+	return item
+}
+
+func isPWad(name string) bool {
+	spl := strings.Split(name, ".")
+
+	return strings.ToLower(spl[len(spl)-1]) == "wad"
+}
+
 func sanitize(s string) string {
 	var placeholder string = s
 
