@@ -224,10 +224,11 @@ func (dwc *Client) LookupWADAlias(alias string) string {
 	return dwc.Configuration.IWads[alias]
 }
 
-func (dwc *Client) CollectPWads(dir string) [2]string {
+func (dwc *Client) CollectPWads(dir string) []string {
+	log.Println("DIR ", dir)
 	pwads := dwc.searchForWads(dir)
 
-	targets := [2]string{}
+	targets := make([]string, 2)
 
 	if len(pwads) > 0 {
 		log.Println("Found some files in that archive:")

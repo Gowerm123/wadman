@@ -109,6 +109,10 @@ func (pm *packageManager) LookupIwad(target string) string {
 	index := pm.findEntry(target)
 	if index == -1 {
 		index = pm.findByAlias(target)
+
+		if index == -1 {
+			return "errnotfound"
+		}
 	}
 
 	return pm.entries[index].Iwad

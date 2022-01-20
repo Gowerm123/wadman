@@ -62,37 +62,46 @@ func handleInstallCommand() {
 }
 
 func handleRunCommand() {
+	basePath := "/usr/share/wadman"
 	args := collectArgs(1, 1)
 	firstArg := args[0]
 	secondArg := getOptional(args, 1, "")
 	var iwad, file string
-	if secondArg == "" {
-		file = firstArg
-		iwad = client.LookupIwad(file)
-	} else {
-		file = secondArg
-		iwad = firstArg
+
+	if firstArg == "iwad" {
+		iwad = secondArg
+		if _, err := os.Stat(iwad); err != nil {
+			iwad = client.LookupWADAlias(iwad)
+		}
+
+		executeCommand(iwad, []string{}, client.Configuration)
+		return
 	}
 
-	//Check if iwad path exists, if not, assume alias
+	iwad = firstArg
+	file = secondArg
 	if _, err := os.Stat(iwad); err != nil {
 		iwad = client.LookupWADAlias(iwad)
 	}
 
-	launcher := client.Configuration.Launcher
-	basePath := client.Configuration.InstallDir
+	wadFiles := client.CollectPWads(fmt.Sprintf("%s/%s", basePath, file))
+	executeCommand(iwad, wadFiles, client.Configuration)
+}
 
-	wadFiles := client.CollectPWads(basePath + file)
+func executeCommand(iwad string, wadFiles []string, config idGamesClient.Configuration) {
+	launcher := config.Launcher
+	launchArgs := config.LaunchArgs
+	log.Println(launchArgs)
 
-	var command *exec.Cmd
-	if wadFiles[1] == "" {
-		command = exec.Command(launcher, "-iwad", iwad, "-file", wadFiles[0])
+	if len(wadFiles) == 0 {
+		launchArgs = append([]string{"-iwad ", iwad}, launchArgs...)
 	} else {
-		command = exec.Command(launcher, "-iwad", iwad, "-file", wadFiles[0], wadFiles[1])
+		launchArgs = append([]string{"-iwad", iwad, "-file", wadFiles[0], wadFiles[1]}, launchArgs...)
 	}
 
-	log.Println(command.String())
-	command.Output()
+	command := exec.Command(launcher, launchArgs...)
+
+	go command.Output()
 }
 
 func handleSearchCommand() {
