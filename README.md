@@ -12,8 +12,8 @@ WadMan is a wad archive manager that automatically downloads from the [DoomWorld
 ## Commands
 WadMan supports nine basic commands
 
- - `search QUERY <QUERYTYPE>` - Searches the IdGames archive for the specified QUERY,QUERYTYPE is optional, and defaults to filename. Possible options are filename, title, author, email, description, credits, editors, textfile.
- - `install QUERY <QUERYTYPE>` - First performs a `search QUERY <QUERYTYPE>` then installs the first found file. It is recommended that you search based on filename here to narrow down overlapping projects.
+ - `search QUERY` - Searches the IdGames archive for the specified QUERY.
+ - `install QUERY` - Runs search, if one file is found, it is installed, if multiple files are found, they are displayed for you to choose.
  - `list` - Lists all currently installed wad archives. Information printed is name of archive, installed directory, idGamesUrl, and Aliases.
  - `remove NAME` - Removes the archive with the given name. If two are found, the first will be deleted.
  - `run` - There are two ways to call `run`. You can either call `run ALIAS/NAME` or `run IWAD ALIAS/NAME`. Note that you must include the IWAD if you have not registered an IWAD to the given `ALIAS/NAME`.

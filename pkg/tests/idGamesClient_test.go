@@ -27,7 +27,7 @@ func TestSearchValidTermReturnsResults(t *testing.T) {
 
 	log.SetOutput(&logBuffer)
 
-	client.SearchAndPrint(testQuery, "title")
+	client.SearchAndPrint(testQuery)
 
 	if len(logBuffer) == 0 {
 		t.Fatal("expected log entries from stdout")
@@ -41,7 +41,7 @@ func TestSearchValidTermReturnsResults(t *testing.T) {
 func TestInstallAndRemoveWorkProperly(t *testing.T) {
 	client := idGamesClient.New()
 
-	client.Install(testQuery, "title")
+	client.Install(testQuery)
 
 	if _, err := os.Stat("/usr/share/wadman/" + testQuery); err != nil {
 		t.Fatal(err.Error())

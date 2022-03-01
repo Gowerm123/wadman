@@ -55,8 +55,7 @@ func handleInstallCommand() {
 	enforceRoot("install")
 	args := collectArgs(1, 1)
 	query := args[0]
-	queryType := getOptional(args, 1, "filename")
-	if client.Install(query, queryType) {
+	if client.Install(query) {
 		log.Println("Success!")
 	}
 }
@@ -97,16 +96,13 @@ func handleRunCommand() {
 
 func handleSearchCommand() {
 	args := os.Args
-	var queryType string = "filename"
 	if len(args) < 3 {
 		log.Println("invalid search command. proper use is\n    wadman search QUERY (optional)QUERYTYPE\nIf you need help, you can run\n    wadman help\nfor more information")
 		os.Exit(0)
-	} else if len(args) == 4 {
-		queryType = args[3]
 	}
 	query := args[2]
 	log.Println("Searching...")
-	client.SearchAndPrint(query, queryType)
+	client.SearchAndPrint(query)
 }
 
 func handleAliasCommand() {

@@ -19,6 +19,8 @@ import (
 const idGamesBaseURI = "http://www.doomworld.com/idgames/api/api.php"
 const idGamesSubstr = "idgames://"
 
+var queryTypes []string = []string{"filename", "title", "author"}
+
 var (
 	mirrors       []string = []string{"mirrors.syringanetworks.net", "www.quaddicted.com", "ftpmirror1.infania.net"}
 	validCommands []string = []string{"search", "install", "run", "help", "list", "alias", "register", "configure", "remove"}
@@ -65,24 +67,26 @@ func New() Client {
 	return client
 }
 
-func (dwc *Client) sendQuery(query, queryType string) searchResponse {
-	pl, err := dwc.dial("search", map[string]string{"query": query, "type": queryType})
-	helpers.HandleFatalErr(err, "failed to send search query")
-
+func (dwc *Client) sendQuery(query string) searchResponse {
 	response := searchResponse{}
+	for _, queryType := range queryTypes {
+		pl, err := dwc.dial("search", map[string]string{"query": query, "type": queryType})
+		helpers.HandleFatalErr(err, "failed to send search query")
+		tempResponse := searchResponse{}
+		xml.Unmarshal([]byte(pl.Body), &tempResponse)
 
-	xml.Unmarshal([]byte(pl.Body), &response)
-
+		response.Files = append(response.Files, tempResponse.Files...)
+	}
 	return response
 }
 
-func (dwc *Client) search(query, queryType string) []apiFile {
-	response := dwc.sendQuery(query, queryType)
+func (dwc *Client) search(query string) []apiFile {
+	response := dwc.sendQuery(query)
 	return response.Files
 }
 
-func (dwc *Client) SearchAndPrint(query, queryType string) {
-	response := dwc.sendQuery(query, queryType)
+func (dwc *Client) SearchAndPrint(query string) {
+	response := dwc.sendQuery(query)
 
 	for _, entry := range response.Files {
 		formatAndPrint(entry)
@@ -114,8 +118,8 @@ func (dwc *Client) dial(action string, params map[string]string) (Payload, error
 	return Payload{Body: string(body), Headers: response.Header}, nil
 }
 
-func (dwc *Client) Install(query, queryType string) bool {
-	files := dwc.search(query, queryType)
+func (dwc *Client) Install(query string) bool {
+	files := dwc.search(query)
 
 	var choice int = 0
 
