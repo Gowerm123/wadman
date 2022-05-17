@@ -1,8 +1,8 @@
 package main
 
 import (
+	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -19,49 +19,98 @@ func init() {
 	log.SetFlags(0)
 }
 
-func main() {
+type ArrayFlags []string
 
-	args := os.Args
+func (af *ArrayFlags) String() string {
+	str := ""
+
+	for _, flag := range *af {
+		str += " "
+		str += flag
+	}
+
+	str = str[:0]
+
+	return str
+}
+
+func (af *ArrayFlags) Set(str string) error {
+	arr := []string{str}
+	if len(strings.Split(str, " ")) > 0 {
+		arr = strings.Split(str, " ")
+	}
+	for _, word := range arr {
+		*af = append(*af, word)
+	}
+
+	return nil
+}
+
+func main() {
 
 	client = idGamesClient.New()
 
-	command := strings.ToLower(args[1])
+	var installArguments, searchArguments, runArguments, uninstArguments, aliasArguments ArrayFlags
 
-	client.ValidateCommand(command)
+	flag.Var(&installArguments, "i", "install from idGames Archive (root)")
+	flag.Var(&installArguments, "install", "install from idGames Archive (root)")
+	flag.Var(&searchArguments, "s", "search on idGames Archive")
+	flag.Var(&searchArguments, "search", "search on idGames Archive")
+	flag.Var(&runArguments, "r", "run with specified launcher and launch args")
+	flag.Var(&runArguments, "run", "run with specified launcher and launch args")
+	flag.Var(&uninstArguments, "u", "uninstall from local, if found (root)")
+	flag.Var(&uninstArguments, "uninstall", "uninstall from local, if found (root)")
+	flag.Var(&aliasArguments, "a", "assign IWAD to PWAD archive")
+	flag.Var(&aliasArguments, "assign", "assign IWAD to PWAD archive")
 
-	if command == "install" {
-		handleInstallCommand()
-	} else if command == "run" {
-		handleRunCommand()
-	} else if command == "search" {
-		handleSearchCommand()
-	} else if command == "list" {
+	list := flag.Bool("l", false, "list installed archives")
+	configure := flag.Bool("c", false, "configure")
+
+	flag.Parse()
+
+	if *list {
 		client.List()
-	} else if command == "alias" {
-		handleAliasCommand()
-	} else if command == "register" {
-		handleRegisterCommand()
-	} else if command == "help" {
-		handleHelpCommand()
-	} else if command == "configure" {
+		return
+	}
+
+	if *configure {
 		handleConfigureCommand()
-	} else if command == "remove" {
-		handleRemoveCommand()
+		return
+	}
+
+	if len(installArguments) > 0 {
+		handleInstallCommand(installArguments)
+		return
+	}
+	if len(runArguments) > 0 {
+		handleRunCommand(runArguments)
+		return
+	}
+
+	if len(searchArguments) > 0 {
+		handleSearchCommand(searchArguments)
+	}
+
+	if len(uninstArguments) > 0 {
+		handleRemoveCommand(uninstArguments)
+	}
+
+	if len(aliasArguments) > 0 {
+		handleRegisterCommand(aliasArguments)
 	}
 
 }
 
-func handleInstallCommand() {
+func handleInstallCommand(arguments ArrayFlags) {
 	enforceRoot("install")
-	args := collectArgs(1, 1)
-	query := args[0]
-	if client.Install(query) {
-		log.Println("Success!")
+	for _, argument := range arguments {
+		if client.Install(argument) {
+			log.Println("Success!")
+		}
 	}
 }
 
-func handleRunCommand() {
-	args := collectArgs(1, 1)
+func handleRunCommand(args ArrayFlags) {
 	firstArg := args[0]
 	secondArg := getOptional(args, 1, "")
 	var iwad, file string
@@ -89,20 +138,16 @@ func handleRunCommand() {
 	} else {
 		command = exec.Command(launcher, "-iwad", iwad, "-file", wadFiles[0], wadFiles[1])
 	}
-
-	log.Println(command.String())
 	command.Output()
 }
 
-func handleSearchCommand() {
-	args := os.Args
-	if len(args) < 3 {
-		log.Println("invalid search command. proper use is\n    wadman search QUERY (optional)QUERYTYPE\nIf you need help, you can run\n    wadman help\nfor more information")
-		os.Exit(0)
+func handleSearchCommand(args ArrayFlags) {
+	buffer := ""
+	for _, arg := range args {
+		buffer += client.SearchAndPrint(arg)
 	}
-	query := args[2]
-	log.Println("Searching...")
-	client.SearchAndPrint(query)
+
+	log.Println(buffer)
 }
 
 func handleAliasCommand() {
@@ -118,18 +163,13 @@ func handleAliasCommand() {
 	client.AddAlias(target, alias)
 }
 
-func handleRegisterCommand() {
+func handleRegisterCommand(args ArrayFlags) {
 	enforceRoot("register")
-	args := collectArgs(2, 0)
 
 	target := args[0]
 	iwad := args[1]
 
 	client.RegisterIwad(target, iwad)
-}
-
-func handleHelpCommand() {
-	printReadme()
 }
 
 func handleConfigureCommand() {
@@ -151,11 +191,12 @@ func handleConfigureCommand() {
 	idGamesClient.UpdateConfigs(launcher, launchArgs, iwads, installDir)
 }
 
-func handleRemoveCommand() {
+func handleRemoveCommand(args ArrayFlags) {
 	enforceRoot("remove")
-	target := collectArgs(1, 0)[0]
 
-	client.Remove(target)
+	for _, target := range args {
+		client.Remove(target)
+	}
 }
 
 func collectArgs(required, optional int) []string {
@@ -189,10 +230,4 @@ func isRoot() bool {
 	helpers.HandleFatalErr(err)
 
 	return currentUser.Username == "root"
-}
-
-func printReadme() {
-	content, _ := ioutil.ReadFile("/usr/share/wadman/README.md")
-
-	log.Println(string(content))
 }

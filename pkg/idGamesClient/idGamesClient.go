@@ -85,17 +85,19 @@ func (dwc *Client) search(query string) []apiFile {
 	return response.Files
 }
 
-func (dwc *Client) SearchAndPrint(query string) {
+func (dwc *Client) SearchAndPrint(query string) string {
 	response := dwc.sendQuery(query)
-
+	output := ""
 	for _, entry := range response.Files {
-		formatAndPrint(entry)
+		output += formatAndPrint(entry)
 	}
+
+	return output
 }
 
-func formatAndPrint(file apiFile) {
+func formatAndPrint(file apiFile) string {
 	file = sanitizeFile(file)
-	log.Printf("File Found\n    Filename: %s\n    Title: %s,\n    Author: %s,\n    Date: %s\n    Url: %s\n", file.Filename, file.Title, file.Author, file.Date, file.IdGamesUrl)
+	return fmt.Sprintf("File Found\n    Filename: %s\n    Title: %s,\n    Author: %s,\n    Date: %s\n    Url: %s\n", file.Filename, file.Title, file.Author, file.Date, file.IdGamesUrl)
 }
 
 func (dwc *Client) dial(action string, params map[string]string) (Payload, error) {
