@@ -91,7 +91,6 @@ func (dwc *Client) SearchAndPrint(query string) string {
 	for _, entry := range response.Files {
 		output += formatAndPrint(entry)
 	}
-
 	return output
 }
 

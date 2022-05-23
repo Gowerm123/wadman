@@ -49,7 +49,6 @@ func main() {
 	client = idGamesClient.New()
 
 	command, arguments := parseCli()
-
 	switch command {
 	case "-i", "--install":
 		handleInstallCommand(arguments)
@@ -124,6 +123,7 @@ func handleSearchCommand(args ArrayFlags) {
 	for _, arg := range args {
 		buffer += client.SearchAndPrint(arg)
 	}
+	log.Println(buffer)
 }
 
 func handleAliasCommand() {
