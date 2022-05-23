@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -47,58 +46,36 @@ func (af *ArrayFlags) Set(str string) error {
 }
 
 func main() {
-
 	client = idGamesClient.New()
 
-	var installArguments, searchArguments, runArguments, uninstArguments, aliasArguments ArrayFlags
+	command, arguments := parseCli()
 
-	flag.Var(&installArguments, "i", "install from idGames Archive (root)")
-	flag.Var(&installArguments, "install", "install from idGames Archive (root)")
-	flag.Var(&searchArguments, "s", "search on idGames Archive")
-	flag.Var(&searchArguments, "search", "search on idGames Archive")
-	flag.Var(&runArguments, "r", "run with specified launcher and launch args")
-	flag.Var(&runArguments, "run", "run with specified launcher and launch args")
-	flag.Var(&uninstArguments, "u", "uninstall from local, if found (root)")
-	flag.Var(&uninstArguments, "uninstall", "uninstall from local, if found (root)")
-	flag.Var(&aliasArguments, "a", "assign IWAD to PWAD archive")
-	flag.Var(&aliasArguments, "assign", "assign IWAD to PWAD archive")
-
-	list := flag.Bool("l", false, "list installed archives")
-	configure := flag.Bool("c", false, "configure")
-
-	flag.Parse()
-
-	if *list {
-		client.List()
+	switch command {
+	case "-i", "--install":
+		handleInstallCommand(arguments)
 		return
-	}
-
-	if *configure {
+	case "-r", "--run":
+		handleRunCommand(arguments)
+		return
+	case "-s", "--search":
+		handleSearchCommand(arguments)
+		return
+	case "-u", "--uninstall":
+		handleRemoveCommand(arguments)
+		return
+	case "-a", "--assign":
+		handleRegisterCommand(arguments)
+		return
+	case "-c", "--configure":
 		handleConfigureCommand()
 		return
-	}
-
-	if len(installArguments) > 0 {
-		handleInstallCommand(installArguments)
+	case "-l", "--list":
+		client.List()
+		return
+	default:
+		log.Println("Unknown command")
 		return
 	}
-	if len(runArguments) > 0 {
-		handleRunCommand(runArguments)
-		return
-	}
-
-	if len(searchArguments) > 0 {
-		handleSearchCommand(searchArguments)
-	}
-
-	if len(uninstArguments) > 0 {
-		handleRemoveCommand(uninstArguments)
-	}
-
-	if len(aliasArguments) > 0 {
-		handleRegisterCommand(aliasArguments)
-	}
-
 }
 
 func handleInstallCommand(arguments ArrayFlags) {
@@ -138,6 +115,7 @@ func handleRunCommand(args ArrayFlags) {
 	} else {
 		command = exec.Command(launcher, "-iwad", iwad, "-file", wadFiles[0], wadFiles[1])
 	}
+
 	command.Output()
 }
 
@@ -146,8 +124,6 @@ func handleSearchCommand(args ArrayFlags) {
 	for _, arg := range args {
 		buffer += client.SearchAndPrint(arg)
 	}
-
-	log.Println(buffer)
 }
 
 func handleAliasCommand() {
@@ -230,4 +206,15 @@ func isRoot() bool {
 	helpers.HandleFatalErr(err)
 
 	return currentUser.Username == "root"
+}
+
+func synthesize(args ArrayFlags) []string {
+	return helpers.Split(args.String())
+}
+
+func parseCli() (cmd string, arguments []string) {
+	cmd = os.Args[1]
+	arguments = os.Args[2:]
+
+	return cmd, arguments
 }

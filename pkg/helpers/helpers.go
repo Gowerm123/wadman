@@ -86,3 +86,7 @@ func Contains(data []string, tgt string) bool {
 	}
 	return false
 }
+
+func Split(data string) []string {
+	return strings.Split(data, ",")
+}
