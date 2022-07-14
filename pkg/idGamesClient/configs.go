@@ -52,7 +52,7 @@ func UpdateConfigs(launcher, args, iwads, installPath string) {
 }
 
 func CommitConfig(config Configuration) {
-	bytes, _ := json.Marshal(config)
+	bytes, _ := json.MarshalIndent(config, "", "	")
 
 	helpers.HandleFatalErr(os.WriteFile(path, bytes, 0644))
 }

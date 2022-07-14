@@ -58,7 +58,7 @@ func (pm *packageManager) Contains(filename, url string) bool {
 }
 
 func (pm *packageManager) Commit() error {
-	bytes, err := json.Marshal(pm.entries)
+	bytes, err := json.MarshalIndent(pm.entries, "", "	")
 	if err != nil {
 		return err
 	}
