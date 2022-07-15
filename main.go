@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"os/user"
 	"strings"
 
 	"github.com/gowerm123/wadman/pkg/helpers"
@@ -47,7 +46,6 @@ func (af *ArrayFlags) Set(str string) error {
 
 func main() {
 	client = idGamesClient.New()
-
 	command, arguments := parseCli()
 	switch command {
 	case "-i", "--install":
@@ -161,7 +159,7 @@ func handleConfigureCommand() {
 	log.Println("IWADs (See the README), enter as comma seperated key=value pairs. Example doom2=/path/to/DOOM2.WAD,plutonia=/path/to/PLUTONIA.WAD")
 	fmt.Scanln(&iwads)
 
-	log.Println("Installation directory for wad archives (default is /usr/share/wadman/)")
+	log.Println("Installation directory for wad archives (default is $HOME/.wadman)")
 	fmt.Scanln(&installDir)
 
 	idGamesClient.UpdateConfigs(launcher, launchArgs, iwads, installDir)
@@ -195,21 +193,10 @@ func getOptional(args []string, index int, defaultVal string) string {
 }
 
 func enforceRoot(cmd string) {
-	if !isRoot() {
-		fmt.Printf("please execute wadman as root when using the %s command\n", cmd)
+	if !helpers.IsRoot() {
+		log.Printf("please execute wadman as root when using the %s command\n", cmd)
 		os.Exit(1)
 	}
-}
-
-func isRoot() bool {
-	currentUser, err := user.Current()
-	helpers.HandleFatalErr(err)
-
-	return currentUser.Username == "root"
-}
-
-func synthesize(args ArrayFlags) []string {
-	return helpers.Split(args.String())
 }
 
 func parseCli() (cmd string, arguments []string) {

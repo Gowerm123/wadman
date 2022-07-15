@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gowerm123/wadman/pkg/helpers"
 	"github.com/gowerm123/wadman/pkg/idGamesClient"
 )
 
@@ -43,7 +44,7 @@ func TestInstallAndRemoveWorkProperly(t *testing.T) {
 
 	client.Install(testQuery)
 
-	if _, err := os.Stat("/usr/share/wadman/" + testQuery); err != nil {
+	if _, err := os.Stat("" + testQuery); err != nil {
 		t.Fatal(err.Error())
 	}
 
@@ -53,8 +54,8 @@ func TestInstallAndRemoveWorkProperly(t *testing.T) {
 
 	client.Remove(testQuery)
 
-	if _, err := os.Stat("/usr/share/wadman/" + testQuery); err == nil {
-		t.Fatal("/usr/share/wadman/" + testQuery + "  should not exist after removal")
+	if _, err := os.Stat(helpers.GetHome() + "/.config/" + testQuery); err == nil {
+		t.Fatal(helpers.GetHome() + "/.config/" + testQuery + "  should not exist after removal")
 	}
 
 	if len(client.GetFilePath(testQuery)) > 0 {

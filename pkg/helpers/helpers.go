@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/user"
 	"path/filepath"
 	"strings"
 )
@@ -89,4 +90,25 @@ func Contains(data []string, tgt string) bool {
 
 func Split(data string) []string {
 	return strings.Split(data, ",")
+}
+
+func IsRoot() bool {
+	currentUser, err := user.Current()
+	HandleFatalErr(err)
+
+	return currentUser.Username == "root"
+}
+
+func GetHome() string {
+	if IsRoot() {
+		username := os.Getenv("SUDO_USER")
+		u, err := user.Lookup(username)
+		HandleFatalErr(err)
+
+		return u.HomeDir
+	}
+	dir, err := os.UserHomeDir()
+	HandleFatalErr(err)
+
+	return dir
 }

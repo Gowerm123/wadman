@@ -131,7 +131,7 @@ func (dwc *Client) Install(query string) bool {
 		log.Println("Multiple files found, please choose...")
 		for it, file := range files {
 			file = sanitizeFile(file)
-			fmt.Printf("%d) %s, by %s, file - %s\n", it, file.Title, file.Author, file.Filename)
+			log.Printf("%d) %s, by %s, file - %s\n", it, file.Title, file.Author, file.Filename)
 		}
 		log.Printf("Choice (0 - %d): ", len(files))
 

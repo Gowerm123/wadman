@@ -2,6 +2,7 @@ package idGamesClient
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -9,7 +10,7 @@ import (
 	"github.com/gowerm123/wadman/pkg/helpers"
 )
 
-var path string = "/usr/share/wadman/.config"
+var path string = fmt.Sprintf("%s/.config/wadman-config.json", helpers.GetHome())
 
 type Configuration struct {
 	Launcher   string            `json:"launcher"`
@@ -23,6 +24,7 @@ func loadConfigs() Configuration {
 	helpers.HandleFatalErr(err)
 
 	var config Configuration
+	fmt.Println(path)
 	err = json.Unmarshal(bytes, &config)
 	helpers.HandleFatalErr(err)
 
@@ -45,7 +47,7 @@ func UpdateConfigs(launcher, args, iwads, installPath string) {
 	if installPath != "" {
 		config.InstallDir = installPath
 	} else {
-		config.InstallDir = "/usr/share/wadman/"
+		config.InstallDir = fmt.Sprintf("%s/.wadman/", helpers.GetHome())
 	}
 
 	CommitConfig(config)
