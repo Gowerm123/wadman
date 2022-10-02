@@ -24,7 +24,6 @@ func loadConfigs() Configuration {
 	helpers.HandleFatalErr(err)
 
 	var config Configuration
-	fmt.Println(path)
 	err = json.Unmarshal(bytes, &config)
 	helpers.HandleFatalErr(err)
 

@@ -1,6 +1,6 @@
 module github.com/gowerm123/wadman
 
-go 1.17
+go 1.19
 
 replace github.com/gowerm123/wadman/pkg/helpers => ./pkg/helpers/
 

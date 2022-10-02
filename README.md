@@ -19,7 +19,7 @@ WadMan supports nine basic commands
  - `list` - Lists all currently installed wad archives. Information printed is name of archive, installed directory, idGamesUrl, and Aliases.
  - `remove NAME` - Removes the archive with the given name. If two are found, the first will be deleted.
  - `run` - There are two ways to call `run`. You can either call `run ALIAS/NAME` or `run IWAD ALIAS/NAME`. Note that you must include the IWAD if you have not registered an IWAD to the given `ALIAS/NAME`.
- - `register NAME IWAD` - Assigns the IWAD to the archive entry in the `pkglist` associated with NAME. This is used for the `run` command so you do not have to specify IWADs everytime you load a PWAD.
+ - `register NAME IWAD` - Assigns the IWAD to the archive entry in the `wadmanifest` associated with NAME. This is used for the `run` command so you do not have to specify IWADs everytime you load a PWAD.
  - `configure` - Runs you through a prompt to fill out the configuration file. The file is a simple JSON file found at `$HOME/.config/wadman-config.json`
  - `help` - Prints this text
  - `alias TARGET ALIAS` - Assigns an alias to the given archive. This alias can be used when performing the `run` command.

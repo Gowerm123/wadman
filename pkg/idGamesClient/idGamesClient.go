@@ -96,7 +96,7 @@ func (dwc *Client) SearchAndPrint(query string) string {
 
 func formatAndPrint(file apiFile) string {
 	file = sanitizeFile(file)
-	return fmt.Sprintf("File Found\n    Filename: %s\n    Title: %s,\n    Author: %s,\n    Date: %s\n    Url: %s\n", file.Filename, file.Title, file.Author, file.Date, file.IdGamesUrl)
+	return fmt.Sprintf("File Found\n\tFilename: %s\n\tTitle: %s,\n\tAuthor: %s,\n\tDate: %s\n\tUrl: %s\n", file.Filename, file.Title, file.Author, file.Date, file.IdGamesUrl)
 }
 
 func (dwc *Client) dial(action string, params map[string]string) (Payload, error) {

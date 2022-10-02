@@ -113,7 +113,9 @@ func handleRunCommand(args ArrayFlags) {
 		command = exec.Command(launcher, "-iwad", iwad, "-file", wadFiles[0], wadFiles[1])
 	}
 
-	command.Output()
+	if _, err := command.Output(); err != nil {
+		helpers.HandleFatalErr(err)
+	}
 }
 
 func handleSearchCommand(args ArrayFlags) {

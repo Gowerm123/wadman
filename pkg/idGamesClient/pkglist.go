@@ -26,7 +26,7 @@ type packageEntry struct {
 func newPackageManager(path string) packageManager {
 	pm := packageManager{}
 
-	pm.path = path + ".pkglist"
+	pm.path = path + ".wadmanifest.json"
 
 	pm.load()
 
@@ -140,7 +140,7 @@ func (pm *packageManager) findByAlias(target string) int {
 	return -1
 }
 
-//Existence lookups should be performed on idgames url to ensure package distinction
+// Existence lookups should be performed on idgames url to ensure package distinction
 func (pm *packageManager) Exists(url string) bool {
 	for _, entry := range pm.entries {
 		if entry.Uri == url {

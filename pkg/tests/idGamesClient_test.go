@@ -49,7 +49,7 @@ func TestInstallAndRemoveWorkProperly(t *testing.T) {
 	}
 
 	if len(client.GetFilePath(testQuery)) == 0 {
-		t.Fatal("err expected filepath entry in pkglist")
+		t.Fatal("err expected filepath entry in wadmanifest")
 	}
 
 	client.Remove(testQuery)

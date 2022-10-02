@@ -4,12 +4,12 @@ echo "Installing wadman..."
 echo "Creating .wadman directory..."
 USER_HOME=$(getent passwd $SUDO_USER | cut -d: -f6)
 BASEPATH="$USER_HOME/.wadman"
-PKGLIST=$BASEPATH/.pkglist.json
+WADMANIFEST=$BASEPATH/.wadmanifest.json
 CONFIG=$USER_HOME/.config/wadman-config.json
 if [ ! -d "$BASEPATH" ]; 
 then
     sudo mkdir $BASEPATH
-    sudo touch $PKGLIST
+    sudo touch $WADMANIFEST
 else
     echo "directory exists....skipping...."
 fi
