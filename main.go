@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -63,9 +62,6 @@ func main() {
 	case "-a", "--assign":
 		handleRegisterCommand(arguments)
 		return
-	case "-c", "--configure":
-		handleConfigureCommand()
-		return
 	case "-l", "--list":
 		client.List()
 		return
@@ -78,8 +74,9 @@ func main() {
 func handleInstallCommand(arguments ArrayFlags) {
 	enforceRoot("install")
 	for _, argument := range arguments {
-		if client.Install(argument) {
-			log.Println("Success!")
+		if !client.Install(argument) {
+			log.Printf("failed to install target %s", argument)
+			os.Exit(1)
 		}
 	}
 }
@@ -126,19 +123,6 @@ func handleSearchCommand(args ArrayFlags) {
 	log.Println(buffer)
 }
 
-func handleAliasCommand() {
-	enforceRoot("alias")
-	args := os.Args
-	if len(args) < 4 {
-		log.Println("invalid alias command. proper use is\n    wadman alias target alias\nIf you need help, you can run\n    wadman help\nfor more information")
-		os.Exit(0)
-	}
-	target := args[2]
-	alias := args[3]
-
-	client.AddAlias(target, alias)
-}
-
 func handleRegisterCommand(args ArrayFlags) {
 	enforceRoot("register")
 
@@ -148,43 +132,12 @@ func handleRegisterCommand(args ArrayFlags) {
 	client.RegisterIwad(target, iwad)
 }
 
-func handleConfigureCommand() {
-	enforceRoot("configure")
-
-	var launcher, launchArgs, iwads, installDir string
-	log.Println("Doom Launcher command (default is gzdoom)")
-	fmt.Scanln(&launcher)
-
-	log.Println("Extra launch arguments (comma seperated, Example \"fast,respawn,nomonsters\")")
-	fmt.Scanln(&launchArgs)
-
-	log.Println("IWADs (See the README), enter as comma seperated key=value pairs. Example doom2=/path/to/DOOM2.WAD,plutonia=/path/to/PLUTONIA.WAD")
-	fmt.Scanln(&iwads)
-
-	log.Println("Installation directory for wad archives (default is $HOME/.wadman)")
-	fmt.Scanln(&installDir)
-
-	idGamesClient.UpdateConfigs(launcher, launchArgs, iwads, installDir)
-}
-
 func handleRemoveCommand(args ArrayFlags) {
 	enforceRoot("remove")
 
 	for _, target := range args {
 		client.Remove(target)
 	}
-}
-
-func collectArgs(required, optional int) []string {
-	var args []string
-	for i := 2; i < required+2; i++ {
-		args = append(args, os.Args[i])
-	}
-	for i := required + 2; i <= required+optional+2 && i < len(os.Args); i++ {
-		args = append(args, os.Args[i])
-	}
-
-	return args
 }
 
 func getOptional(args []string, index int, defaultVal string) string {
