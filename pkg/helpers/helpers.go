@@ -99,16 +99,32 @@ func IsRoot() bool {
 	return currentUser.Username == "root"
 }
 
-func GetHome() string {
+func GetWadmanHomeDir() string {
+	const wadmanPath = "/.wadman/"
 	if IsRoot() {
 		username := os.Getenv("SUDO_USER")
 		u, err := user.Lookup(username)
 		HandleFatalErr(err)
 
-		return u.HomeDir
+		return u.HomeDir + wadmanPath
 	}
 	dir, err := os.UserHomeDir()
 	HandleFatalErr(err)
 
-	return dir
+	return dir + wadmanPath
+}
+
+func WadmanConfigPath() string {
+	const configPath = "/.config/wadman-config.json"
+	if IsRoot() {
+		username := os.Getenv("SUDO_USER")
+		u, err := user.Lookup(username)
+		HandleFatalErr(err)
+
+		return u.HomeDir + configPath
+	}
+	dir, err := os.UserHomeDir()
+	HandleFatalErr(err)
+
+	return dir + configPath
 }

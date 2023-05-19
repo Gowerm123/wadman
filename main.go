@@ -50,21 +50,20 @@ func main() {
 	case "-i", "--install":
 		handleInstallCommand(arguments)
 		return
-	case "-r", "--run":
-		handleRunCommand(arguments)
-		return
-	case "-s", "--search":
-		handleSearchCommand(arguments)
-		return
-	case "-u", "--uninstall":
+	case "-r", "--remove":
 		handleRemoveCommand(arguments)
 		return
-	case "-a", "--assign":
-		handleRegisterCommand(arguments)
+	case "-q", "--query":
+		handleSearchCommand(arguments)
+		return
+	case "-p", "--play":
+		handleRunCommand(arguments)
 		return
 	case "-l", "--list":
 		client.List()
 		return
+	case "-s", "--set":
+		handleSetCommand(arguments)
 	default:
 		log.Println("Unknown command")
 		return
@@ -75,10 +74,18 @@ func handleInstallCommand(arguments ArrayFlags) {
 	enforceRoot("install")
 	for _, argument := range arguments {
 		if !client.Install(argument) {
-			log.Printf("failed to install target %s", argument)
-			os.Exit(1)
+			log.Fatalf("failed to install target %s", argument)
 		}
 	}
+}
+
+func handleSetCommand(args ArrayFlags) {
+	enforceRoot("set")
+	if len(args) != 2 {
+		log.Fatal("format for set command is wadman -s KEY VALUE\nPlease see help section for list of available KEYs")
+	}
+
+	client.Set(args[0], args[1])
 }
 
 func handleRunCommand(args ArrayFlags) {
@@ -98,10 +105,9 @@ func handleRunCommand(args ArrayFlags) {
 		iwad = client.LookupWADAlias(iwad)
 	}
 
-	launcher := client.Configuration.Launcher
-	basePath := client.Configuration.InstallDir
+	launcher := client.LaunchConfiguration.Launcher
 
-	wadFiles := client.CollectPWads(basePath + file)
+	wadFiles := client.CollectPWads(helpers.GetWadmanHomeDir() + file)
 
 	var command *exec.Cmd
 	if wadFiles[1] == "" {

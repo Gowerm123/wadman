@@ -16,10 +16,12 @@ import (
 	"github.com/gowerm123/wadman/pkg/helpers"
 )
 
-const idGamesBaseURI = "http://www.doomworld.com/idgames/api/api.php"
-const idGamesSubstr = "idgames://"
+const (
+	idGamesBaseURI = "http://www.doomworld.com/idgames/api/api.php"
+	idGamesSubstr  = "idgames://"
+)
 
-var queryTypes []string = []string{"filename", "title", "author"}
+var queryTypes = []string{"filename", "title", "author"}
 
 var (
 	mirrors       []string = []string{"mirrors.syringanetworks.net", "www.quaddicted.com", "ftpmirror1.infania.net"}
@@ -29,7 +31,7 @@ var (
 type Client struct {
 	httpClient http.Client
 	packageManager
-	Configuration
+	LaunchConfiguration
 }
 
 type Payload struct {
@@ -60,9 +62,9 @@ type apiFile struct {
 func New() Client {
 	var client Client
 
-	client.Configuration = loadConfigs()
+	client.LaunchConfiguration = loadConfigs()
 	client.httpClient = *http.DefaultClient
-	client.packageManager = newPackageManager(client.Configuration.InstallDir)
+	client.packageManager = newPackageManager()
 
 	return client
 }
@@ -155,8 +157,7 @@ func (dwc *Client) Install(query string) bool {
 	}
 	for _, mirror := range mirrors {
 		installPath := saveContentToZipFile(file, mirror, dwc)
-
-		unzipped := fmt.Sprintf("%s%s", dwc.Configuration.InstallDir, dirName)
+		unzipped := helpers.GetWadmanHomeDir() + dirName
 		err := helpers.Unzip(installPath, unzipped)
 		helpers.HandleFatalErr(err, "failed to unzip archive", installPath, "-")
 
@@ -176,6 +177,10 @@ func (dwc *Client) List() {
 	for _, entry := range dwc.packageManager.entries {
 		log.Printf("Package - Name: %s, Dir: %s, Uri: %s, Aliases: %s\n", entry.Name, entry.Dir, entry.Uri, entry.Aliases)
 	}
+}
+
+func (dwc *Client) Set(key, value string) {
+	dwc.LaunchConfiguration.Update(key, value)
 }
 
 func (dwc *Client) AddAlias(target, alias string) {
@@ -202,10 +207,10 @@ func saveContentToZipFile(file apiFile, mirror string, dwc *Client) string {
 	content, err := dwc.httpClient.Get(endpointUri)
 	helpers.HandleFatalErr(err, "failed to retrieve file contents from mirror", mirror, "-")
 
-	fmtdLocalPath := fmt.Sprint(dwc.Configuration.InstallDir, file.Filename)
+	fmtdLocalPath := helpers.GetWadmanHomeDir() + file.Filename
 
 	_, err = os.Create(fmtdLocalPath)
-	helpers.HandleFatalErr(err, "failed to create file ", fmt.Sprint(dwc.Configuration.InstallDir, file.Filename), "-")
+	helpers.HandleFatalErr(err, "failed to create file ", helpers.GetWadmanHomeDir()+file.Filename, "-")
 
 	bytes, _ := ioutil.ReadAll(content.Body)
 
@@ -226,7 +231,7 @@ func (dwc *Client) RegisterIwad(name, iwad string) {
 }
 
 func (dwc *Client) LookupWADAlias(alias string) string {
-	return dwc.Configuration.IWads[alias]
+	return dwc.LaunchConfiguration.IWads[alias]
 }
 
 func (dwc *Client) CollectPWads(dir string) [2]string {

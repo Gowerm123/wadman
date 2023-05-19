@@ -2,58 +2,63 @@ package idGamesClient
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 
 	"github.com/gowerm123/wadman/pkg/helpers"
 )
 
-var path string = fmt.Sprintf("%s/.config/wadman-config.json", helpers.GetHome())
+var path string = helpers.WadmanConfigPath()
 
-type Configuration struct {
+const (
+	launchKey = "LAUNCHER"
+	lArgKey   = "LAUNCHARGS"
+	iwadKey   = "IWAD"
+)
+
+var setKeys = []string{launchKey, iwadKey, lArgKey}
+
+type LaunchConfiguration struct {
 	Launcher   string            `json:"launcher"`
 	LaunchArgs []string          `json:"launchArgs"`
 	IWads      map[string]string `json:"iwads"`
-	InstallDir string            `json:"installDir"`
 }
 
-func loadConfigs() Configuration {
+func loadConfigs() LaunchConfiguration {
 	bytes, err := ioutil.ReadFile(path)
 	helpers.HandleFatalErr(err)
 
-	var config Configuration
+	var config LaunchConfiguration
 	err = json.Unmarshal(bytes, &config)
 	helpers.HandleFatalErr(err)
 
 	return config
 }
 
-func UpdateConfigs(launcher, args, iwads, installPath string) {
-	var config Configuration
-	if launcher != "" {
-		config.Launcher = launcher
+func (cfg LaunchConfiguration) Update(key, value string) {
+	if key == iwadKey {
+		spl := strings.Split(value, "=")
+		if len(spl) != 2 {
+			log.Fatal("error in assigning iwad, please use the format, wadman -s IWAD ${ALIAS}=${PATH_TO_IWAD}")
+		}
+
+		cfg.IWads[spl[0]] = spl[1]
 	} else {
-		config.Launcher = "gzdoom"
-	}
-	if args != "" {
-		config.LaunchArgs = strings.Split(args, ",")
-	}
-	if iwads != "" {
-		config.IWads = convertToMap(iwads)
-	}
-	if installPath != "" {
-		config.InstallDir = installPath
-	} else {
-		config.InstallDir = fmt.Sprintf("%s/.wadman/", helpers.GetHome())
+		switch key {
+		case lArgKey:
+			cfg.LaunchArgs = strings.Split(value, ",")
+		case launchKey:
+			cfg.Launcher = value
+		}
 	}
 
-	CommitConfig(config)
+	cfg.Commit()
 }
 
-func CommitConfig(config Configuration) {
-	bytes, _ := json.MarshalIndent(config, "", "	")
+func (cfg LaunchConfiguration) Commit() {
+	bytes, _ := json.MarshalIndent(cfg, "", "	")
 
 	helpers.HandleFatalErr(os.WriteFile(path, bytes, 0644))
 }

@@ -23,10 +23,10 @@ type packageEntry struct {
 	Iwad    string   `json:"iwad"`
 }
 
-func newPackageManager(path string) packageManager {
+func newPackageManager() packageManager {
 	pm := packageManager{}
 
-	pm.path = path + ".wadmanifest.json"
+	pm.path = helpers.GetWadmanHomeDir() + "wadmanifest.json"
 
 	pm.load()
 
