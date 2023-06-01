@@ -234,39 +234,10 @@ func (dwc *Client) LookupWADAlias(alias string) string {
 	return dwc.LaunchConfiguration.IWads[alias]
 }
 
-func (dwc *Client) CollectPWads(dir string) [2]string {
+func (dwc *Client) CollectPWads(dir string) []string {
 	pwads := dwc.searchForWads(dir)
 
-	targets := [2]string{}
-
-	if len(pwads) > 0 {
-		log.Println("Found some files in that archive:")
-		for index, pwad := range pwads {
-			log.Printf("%d) %s", index, pwad)
-		}
-
-		var selections string
-		log.Print("Choose up to 2 (seperated by a comma): ")
-		fmt.Scanln(&selections)
-
-		if selections != "" {
-			spl := strings.Split(selections, ",")
-
-			if len(spl) > 1 {
-				targetIndex, err := strconv.Atoi(spl[1])
-				helpers.HandleFatalErr(err)
-
-				targets[1] = pwads[targetIndex]
-			}
-
-			targetIndex, err := strconv.Atoi(spl[0])
-			helpers.HandleFatalErr(err)
-
-			targets[0] = pwads[targetIndex]
-		}
-	}
-
-	return targets
+	return pwads
 }
 
 func (dwc *Client) searchForWads(dir string) []string {
