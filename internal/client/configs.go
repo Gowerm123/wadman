@@ -1,4 +1,4 @@
-package idGamesClient
+package client
 
 import (
 	"encoding/json"
@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/gowerm123/wadman/pkg/helpers"
+	"github.com/gowerm123/wadman/internal/helpers"
 )
 
 var path string = helpers.WadmanConfigPath()
@@ -20,24 +20,25 @@ const (
 
 var setKeys = []string{launchKey, iwadKey, lArgKey}
 
-type LaunchConfiguration struct {
+type Configuration struct {
 	Launcher   string            `json:"launcher"`
 	LaunchArgs []string          `json:"launchArgs"`
 	IWads      map[string]string `json:"iwads"`
+	Mirrors    []string          `json:"mirrors"`
 }
 
-func loadConfigs() LaunchConfiguration {
+func loadConfigs() Configuration {
 	bytes, err := ioutil.ReadFile(path)
 	helpers.HandleFatalErr(err)
 
-	var config LaunchConfiguration
+	var config Configuration
 	err = json.Unmarshal(bytes, &config)
 	helpers.HandleFatalErr(err)
 
 	return config
 }
 
-func (cfg LaunchConfiguration) Update(key, value string) {
+func (cfg Configuration) Update(key, value string) {
 	if key == iwadKey {
 		spl := strings.Split(value, "=")
 		if len(spl) != 2 {
@@ -57,7 +58,7 @@ func (cfg LaunchConfiguration) Update(key, value string) {
 	cfg.Commit()
 }
 
-func (cfg LaunchConfiguration) Commit() {
+func (cfg Configuration) Commit() {
 	bytes, _ := json.MarshalIndent(cfg, "", "	")
 
 	helpers.HandleFatalErr(os.WriteFile(path, bytes, 0644))

@@ -6,11 +6,12 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/gowerm123/wadman/pkg/helpers"
-	"github.com/gowerm123/wadman/pkg/idGamesClient"
+	"github.com/gowerm123/wadman/internal/client"
+	"github.com/gowerm123/wadman/internal/helpers"
 )
 
-var client idGamesClient.Client
+var idGamesClient client.IdGamesClient
+var archiveManager client.ArchiveManager
 
 func init() {
 	log.SetFlags(0)
@@ -44,7 +45,7 @@ func (af *ArrayFlags) Set(str string) error {
 }
 
 func main() {
-	client = idGamesClient.New()
+	idGamesClient = client.New()
 	command, arguments := parseCli()
 	switch command {
 	case "-i", "--install":
@@ -60,7 +61,7 @@ func main() {
 		handleRunCommand(arguments)
 		return
 	case "-l", "--list":
-		client.List()
+		idGamesClient.List()
 		return
 	case "-s", "--set":
 		handleSetCommand(arguments)
@@ -73,7 +74,7 @@ func main() {
 func handleInstallCommand(arguments ArrayFlags) {
 	enforceRoot("install")
 	for _, argument := range arguments {
-		if !client.Install(argument) {
+		if !idGamesClient.Install(argument, archiveManager) {
 			log.Fatalf("failed to install target %s", argument)
 		}
 	}
@@ -85,7 +86,7 @@ func handleSetCommand(args ArrayFlags) {
 		log.Fatal("format for set command is wadman -s KEY VALUE\nPlease see help section for list of available KEYs")
 	}
 
-	client.Set(args[0], args[1])
+	idGamesClient.Set(args[0], args[1])
 }
 
 func handleRunCommand(args ArrayFlags) {
@@ -94,7 +95,7 @@ func handleRunCommand(args ArrayFlags) {
 	var iwad, file string
 	if secondArg == "" {
 		file = firstArg
-		iwad = client.LookupIwad(file)
+		iwad = archiveManager.LookupIwad(file)
 	} else {
 		file = secondArg
 		iwad = firstArg
@@ -102,12 +103,12 @@ func handleRunCommand(args ArrayFlags) {
 
 	//Check if iwad path exists, if not, assume alias
 	if _, err := os.Stat(iwad); err != nil {
-		iwad = client.LookupWADAlias(iwad)
+		iwad = archiveManager.LookupWADAlias(iwad)
 	}
 
-	launcher := client.LaunchConfiguration.Launcher
+	launcher := interface{}(idGamesClient).(client.LiveClient).Configuration.Launcher
 
-	wadFiles := client.CollectPWads(helpers.GetWadmanHomeDir() + file)
+	wadFiles := archiveManager.CollectPWads(helpers.GetWadmanHomeDir() + file)
 
 	var command *exec.Cmd
 	if len(wadFiles) == 1 || wadFiles[1] == "" {
@@ -124,7 +125,7 @@ func handleRunCommand(args ArrayFlags) {
 func handleSearchCommand(args ArrayFlags) {
 	buffer := ""
 	for _, arg := range args {
-		buffer += client.SearchAndPrint(arg)
+		buffer += idGamesClient.SearchAndPrint(arg)
 	}
 	log.Println(buffer)
 }
@@ -135,14 +136,14 @@ func handleRegisterCommand(args ArrayFlags) {
 	target := args[0]
 	iwad := args[1]
 
-	client.RegisterIwad(target, iwad)
+	archiveManager.RegisterIwad(target, iwad)
 }
 
 func handleRemoveCommand(args ArrayFlags) {
 	enforceRoot("remove")
 
 	for _, target := range args {
-		client.Remove(target)
+		archiveManager.Remove(target)
 	}
 }
 

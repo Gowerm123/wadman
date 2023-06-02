@@ -1,4 +1,4 @@
-package idGamesClient
+package client
 
 import (
 	"encoding/xml"
@@ -13,7 +13,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/gowerm123/wadman/pkg/helpers"
+	"github.com/gowerm123/wadman/internal/helpers"
 )
 
 const (
@@ -24,14 +24,13 @@ const (
 var queryTypes = []string{"filename", "title", "author"}
 
 var (
-	mirrors       []string = []string{"mirrors.syringanetworks.net", "www.quaddicted.com", "ftpmirror1.infania.net"}
 	validCommands []string = []string{"search", "install", "run", "help", "list", "alias", "register", "configure", "remove"}
 )
 
-type Client struct {
+type LiveClient struct {
 	httpClient http.Client
-	packageManager
-	LaunchConfiguration
+	LiveArchiveManager
+	Configuration
 }
 
 type Payload struct {
@@ -40,10 +39,10 @@ type Payload struct {
 }
 
 type searchResponse struct {
-	Files []apiFile `xml:"content>file"`
+	Files []ApiFile `xml:"content>file"`
 }
 
-type apiFile struct {
+type ApiFile struct {
 	Author      string  `xml:"author"`
 	Email       string  `xml:"email"`
 	Title       string  `xml:"title"`
@@ -59,17 +58,17 @@ type apiFile struct {
 	IdGamesUrl  string  `xml:"idgamesurl"`
 }
 
-func New() Client {
-	var client Client
+func New() IdGamesClient {
+	var client LiveClient
 
-	client.LaunchConfiguration = loadConfigs()
+	client.Configuration = loadConfigs()
 	client.httpClient = *http.DefaultClient
-	client.packageManager = newPackageManager()
+	client.LiveArchiveManager = NewArchiveManager()
 
 	return client
 }
 
-func (dwc *Client) sendQuery(query string) searchResponse {
+func (dwc LiveClient) sendQuery(query string) searchResponse {
 	response := searchResponse{}
 	for _, queryType := range queryTypes {
 		pl, err := dwc.dial("search", map[string]string{"query": query, "type": queryType})
@@ -82,12 +81,12 @@ func (dwc *Client) sendQuery(query string) searchResponse {
 	return response
 }
 
-func (dwc *Client) search(query string) []apiFile {
+func (dwc LiveClient) search(query string) []ApiFile {
 	response := dwc.sendQuery(query)
 	return response.Files
 }
 
-func (dwc *Client) SearchAndPrint(query string) string {
+func (dwc LiveClient) SearchAndPrint(query string) string {
 	response := dwc.sendQuery(query)
 	output := ""
 	for _, entry := range response.Files {
@@ -96,12 +95,12 @@ func (dwc *Client) SearchAndPrint(query string) string {
 	return output
 }
 
-func formatAndPrint(file apiFile) string {
+func formatAndPrint(file ApiFile) string {
 	file = sanitizeFile(file)
 	return fmt.Sprintf("File Found\n\tFilename: %s\n\tTitle: %s,\n\tAuthor: %s,\n\tDate: %s\n\tUrl: %s\n", file.Filename, file.Title, file.Author, file.Date, file.IdGamesUrl)
 }
 
-func (dwc *Client) dial(action string, params map[string]string) (Payload, error) {
+func (dwc LiveClient) dial(action string, params map[string]string) (Payload, error) {
 	actionEndpoint := fmt.Sprintf("%s?action=%s", idGamesBaseURI, action)
 
 	for k, v := range params {
@@ -121,7 +120,7 @@ func (dwc *Client) dial(action string, params map[string]string) (Payload, error
 	return Payload{Body: string(body), Headers: response.Header}, nil
 }
 
-func (dwc *Client) Install(query string) bool {
+func (dwc LiveClient) Install(query string, am ArchiveManager) bool {
 	files := dwc.search(query)
 
 	var choice int = 0
@@ -150,97 +149,82 @@ func (dwc *Client) Install(query string) bool {
 
 	file := files[choice]
 
-	dirName := strings.Replace(file.Filename, ".zip", "", 1)
-	if dwc.packageManager.Contains(dirName, file.IdGamesUrl) {
-		log.Println("skipping " + dirName + " it is already installed")
-		return false
-	}
-	for _, mirror := range mirrors {
-		installPath := saveContentToZipFile(file, mirror, dwc)
-		unzipped := helpers.GetWadmanHomeDir() + dirName
-		err := helpers.Unzip(installPath, unzipped)
-		helpers.HandleFatalErr(err, "failed to unzip archive", installPath, "-")
-
-		log.Println("Removing unnnecessary zip archive")
-		err = os.Remove(installPath)
-		helpers.HandleFatalErr(err, "failed to delete zip archive", installPath, "-")
-
-		dwc.packageManager.NewEntry(dirName, unzipped, file.IdGamesUrl)
-
-		return true
-	}
+	dwc.saveContentToZipFile(file)
+	am.Install(file)
 
 	return false
 }
 
-func (dwc *Client) List() {
-	for _, entry := range dwc.packageManager.entries {
+func (dwc LiveClient) List() {
+	for _, entry := range dwc.LiveArchiveManager.entries {
 		log.Printf("Package - Name: %s, Dir: %s, Uri: %s, Aliases: %s\n", entry.Name, entry.Dir, entry.Uri, entry.Aliases)
 	}
 }
 
-func (dwc *Client) Set(key, value string) {
-	dwc.LaunchConfiguration.Update(key, value)
+func (dwc LiveClient) Set(key, value string) {
+	dwc.Configuration.Update(key, value)
 }
 
-func (dwc *Client) AddAlias(target, alias string) {
-	dwc.packageManager.AddAlias(target, alias)
+func (dwc LiveClient) AddAlias(target, alias string) {
+	dwc.LiveArchiveManager.AddAlias(target, alias)
 }
 
-func (dwc *Client) ValidateCommand(cmd string) {
+func (dwc LiveClient) ValidateCommand(cmd string) {
 	if !helpers.Contains(validCommands, cmd) {
 		err := errors.New(fmt.Sprint("invalid command, valid commands are ", validCommands))
 		helpers.HandleFatalErr(err)
 	}
 }
 
-func (dwc *Client) LookupLocalPath(name string) string {
-	return dwc.packageManager.GetFilePath(name)
+func (dwc LiveClient) LookupLocalPath(name string) string {
+	return dwc.LiveArchiveManager.GetFilePath(name)
 }
 
-func saveContentToZipFile(file apiFile, mirror string, dwc *Client) string {
-	filepath := strings.Replace(file.IdGamesUrl, idGamesSubstr, "", 1)
-	endpointUri := fmt.Sprintf("http://%s/idgames/%s", mirror, filepath)
+func (dwc LiveClient) saveContentToZipFile(file ApiFile) {
+	for _, mirror := range dwc.Configuration.Mirrors {
+		filepath := strings.Replace(file.IdGamesUrl, idGamesSubstr, "", 1)
+		endpointUri := fmt.Sprintf("http://%s/idgames/%s", mirror, filepath)
 
-	log.Println("Attempting install from ", endpointUri)
+		log.Println("Attempting install from ", endpointUri)
 
-	content, err := dwc.httpClient.Get(endpointUri)
-	helpers.HandleFatalErr(err, "failed to retrieve file contents from mirror", mirror, "-")
+		content, err := dwc.httpClient.Get(endpointUri)
+		helpers.HandleFatalErr(err, "failed to retrieve file contents from mirror", mirror, "-")
 
-	fmtdLocalPath := helpers.GetWadmanHomeDir() + file.Filename
+		fmtdLocalPath := helpers.GetWadmanHomeDir() + file.Filename
 
-	_, err = os.Create(fmtdLocalPath)
-	helpers.HandleFatalErr(err, "failed to create file ", helpers.GetWadmanHomeDir()+file.Filename, "-")
+		_, err = os.Create(fmtdLocalPath)
+		helpers.HandleFatalErr(err, "failed to create file ", helpers.GetWadmanHomeDir()+file.Filename, "-")
 
-	bytes, _ := ioutil.ReadAll(content.Body)
+		bytes, _ := ioutil.ReadAll(content.Body)
 
-	err = os.WriteFile(fmtdLocalPath, bytes, 0644)
-	helpers.HandleFatalErr(err, "failed to write file -")
+		err = os.WriteFile(fmtdLocalPath, bytes, 0644)
+		helpers.HandleFatalErr(err, "failed to write file -")
 
-	log.Printf("Successfully wrote contents to %s\n", fmtdLocalPath)
-
-	return fmtdLocalPath
+		log.Printf("Successfully wrote contents to %s\n", fmtdLocalPath)
+		return
+	}
+	panic(fmt.Errorf("failed to download from available mirrors, mirrors can be updated at $HOME/.config/wadman-config.json"))
 }
 
-func (dwc *Client) LookupIwad(name string) string {
-	return dwc.packageManager.LookupIwad(name)
+func (dwc LiveClient) LookupIwad(name string) string {
+	return dwc.LiveArchiveManager.LookupIwad(name)
 }
 
-func (dwc *Client) RegisterIwad(name, iwad string) {
-	dwc.packageManager.RegisterIwad(name, iwad)
+func (dwc LiveClient) RegisterIwad(name, iwad string) {
+	dwc.LiveArchiveManager.RegisterIwad(name, iwad)
 }
 
-func (dwc *Client) LookupWADAlias(alias string) string {
-	return dwc.LaunchConfiguration.IWads[alias]
+func (dwc LiveClient) LookupWADAlias(alias string) string {
+	return dwc.Configuration.IWads[alias]
 }
 
-func (dwc *Client) CollectPWads(dir string) []string {
+func (dwc LiveClient) CollectPWads(dir string) []string {
 	pwads := dwc.searchForWads(dir)
 
 	return pwads
 }
 
-func (dwc *Client) searchForWads(dir string) []string {
+func (dwc LiveClient) searchForWads(dir string) []string {
 	var buffer []string
 	var wads []string
 
@@ -293,8 +277,8 @@ func sanitize(s string) string {
 	return placeholder
 }
 
-func sanitizeFile(file apiFile) apiFile {
-	var placeholder apiFile
+func sanitizeFile(file ApiFile) ApiFile {
+	var placeholder ApiFile
 
 	placeholder.Age = file.Age
 	placeholder.Author = sanitize(file.Author)

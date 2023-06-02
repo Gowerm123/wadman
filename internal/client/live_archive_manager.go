@@ -1,21 +1,22 @@
-package idGamesClient
+package client
 
 import (
 	"encoding/json"
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 
-	"github.com/gowerm123/wadman/pkg/helpers"
+	"github.com/gowerm123/wadman/internal/helpers"
 )
 
-type packageManager struct {
+type LiveArchiveManager struct {
 	path string
 
-	entries []packageEntry
+	entries []ArchiveEntry
 }
 
-type packageEntry struct {
+type ArchiveEntry struct {
 	Name    string   `json:"name"`
 	Dir     string   `json:"dir"`
 	Uri     string   `json:"uri"`
@@ -23,8 +24,8 @@ type packageEntry struct {
 	Iwad    string   `json:"iwad"`
 }
 
-func newPackageManager() packageManager {
-	pm := packageManager{}
+func NewArchiveManager() LiveArchiveManager {
+	pm := LiveArchiveManager{}
 
 	pm.path = helpers.GetWadmanHomeDir() + "wadmanifest.json"
 
@@ -33,22 +34,22 @@ func newPackageManager() packageManager {
 	return pm
 }
 
-func (pm *packageManager) load() {
+func (pm *LiveArchiveManager) load() {
 	body, err := ioutil.ReadFile(pm.path)
 	helpers.HandleFatalErr(err)
 
 	json.Unmarshal(body, &pm.entries)
 }
 
-func (pm *packageManager) NewEntry(filename, path, url string) {
+func (pm *LiveArchiveManager) newEntry(filename, path, url string) {
 	if pm.Exists(url) {
 		return
 	}
-	pm.entries = append(pm.entries, packageEntry{Name: filename, Dir: path, Uri: url})
+	pm.entries = append(pm.entries, ArchiveEntry{Name: filename, Dir: path, Uri: url})
 	helpers.HandleFatalErr(pm.Commit())
 }
 
-func (pm *packageManager) Contains(filename, url string) bool {
+func (pm *LiveArchiveManager) Contains(filename, url string) bool {
 	for _, entry := range pm.entries {
 		if entry.Name == filename && entry.Uri == url {
 			return true
@@ -57,7 +58,7 @@ func (pm *packageManager) Contains(filename, url string) bool {
 	return false
 }
 
-func (pm *packageManager) Commit() error {
+func (pm *LiveArchiveManager) Commit() error {
 	bytes, err := json.MarshalIndent(pm.entries, "", "	")
 	if err != nil {
 		return err
@@ -71,7 +72,7 @@ func (pm *packageManager) Commit() error {
 	return nil
 }
 
-func (pm *packageManager) GetFilePath(target string) string {
+func (pm *LiveArchiveManager) GetFilePath(target string) string {
 	index := pm.findEntry(target)
 
 	if index == -1 {
@@ -81,7 +82,7 @@ func (pm *packageManager) GetFilePath(target string) string {
 	return pm.entries[index].Dir
 }
 
-func (pm *packageManager) AddAlias(target, alias string) {
+func (pm *LiveArchiveManager) AddAlias(target, alias string) {
 	index := pm.findEntry(target)
 
 	if helpers.Contains(pm.entries[index].Aliases, alias) {
@@ -94,7 +95,7 @@ func (pm *packageManager) AddAlias(target, alias string) {
 	helpers.HandleFatalErr(pm.Commit())
 }
 
-func (pm *packageManager) Remove(target string) {
+func (pm *LiveArchiveManager) Remove(target string) {
 	index := pm.findEntry(target)
 
 	dir := pm.entries[index].Dir
@@ -105,7 +106,7 @@ func (pm *packageManager) Remove(target string) {
 	helpers.HandleFatalErr(pm.Commit())
 }
 
-func (pm *packageManager) LookupIwad(target string) string {
+func (pm *LiveArchiveManager) LookupIwad(target string) string {
 	index := pm.findEntry(target)
 	if index == -1 {
 		index = pm.findByAlias(target)
@@ -114,7 +115,7 @@ func (pm *packageManager) LookupIwad(target string) string {
 	return pm.entries[index].Iwad
 }
 
-func (pm *packageManager) RegisterIwad(target, iwad string) {
+func (pm *LiveArchiveManager) RegisterIwad(target, iwad string) {
 	index := pm.findEntry(target)
 
 	pm.entries[index].Iwad = iwad
@@ -122,7 +123,7 @@ func (pm *packageManager) RegisterIwad(target, iwad string) {
 	helpers.HandleFatalErr(pm.Commit())
 }
 
-func (pm *packageManager) findEntry(target string) int {
+func (pm *LiveArchiveManager) findEntry(target string) int {
 	for i, entry := range pm.entries {
 		if entry.Name == target || helpers.Contains(entry.Aliases, target) {
 			return i
@@ -131,7 +132,7 @@ func (pm *packageManager) findEntry(target string) int {
 	return -1
 }
 
-func (pm *packageManager) findByAlias(target string) int {
+func (pm *LiveArchiveManager) findByAlias(target string) int {
 	for i, entry := range pm.entries {
 		if helpers.Contains(entry.Aliases, target) {
 			return i
@@ -141,11 +142,31 @@ func (pm *packageManager) findByAlias(target string) int {
 }
 
 // Existence lookups should be performed on idgames url to ensure package distinction
-func (pm *packageManager) Exists(url string) bool {
+func (pm *LiveArchiveManager) Exists(url string) bool {
 	for _, entry := range pm.entries {
 		if entry.Uri == url {
 			return true
 		}
 	}
 	return false
+}
+
+func (pm LiveArchiveManager) Install(file ApiFile, installPath string) bool {
+	dirName := strings.Replace(file.Filename, ".zip", "", 1)
+	if pm.Contains(dirName, file.IdGamesUrl) {
+		log.Println("skipping " + dirName + " it is already installed")
+		return false
+	}
+
+	unzipped := helpers.GetWadmanHomeDir() + dirName
+	err := helpers.Unzip(installPath, unzipped)
+	helpers.HandleFatalErr(err, "failed to unzip archive", installPath, "-")
+
+	log.Println("Removing unnnecessary zip archive")
+	err = os.Remove(installPath)
+	helpers.HandleFatalErr(err, "failed to delete zip archive", installPath, "-")
+
+	pm.newEntry(dirName, unzipped, file.IdGamesUrl)
+
+	return true
 }
