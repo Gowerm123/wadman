@@ -13,11 +13,13 @@ Note, because wadman uses the `$SUDO_USER` environment variable to identify the 
 
 ## Commands
 WadMan supports five basic commands
-```sh
-Install: wadman -i <target> / wadman --install <target> 
-Uninstall: wadman -u <target> / wadman --uninstall <target> 
-Search: wadman -s <target> / wadman --search <target>
-Run: wadman -r <targe> / wadman --run <target>
-List: wadman -l / wadman --list
 
-```
+**Install**: `wadman -i target / wadman --install target` \
+**Uninstall**: `wadman -u target / wadman --uninstall target` \
+**Query**: `wadman -q target / wadman --query target` \
+**Run**: `wadman -r target / wadman --run target` \
+**List**: `wadman -l / wadman --list` \
+**Set**: `wadman -s KEY VALUE / wadman --set KEY VALUE`
+- You can use the Set command to set the LAUNCHER, LAUNCHARGS, IWAD, or MIRRORS configurations.
+    - When setting IWad Aliases (IWAD) use the format \
+    ```wadman -s IWAD doom2=path/to/DOOM2.WAD```
