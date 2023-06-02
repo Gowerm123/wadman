@@ -110,7 +110,7 @@ func handleRunCommand(args ArrayFlags) {
 	wadFiles := client.CollectPWads(helpers.GetWadmanHomeDir() + file)
 
 	var command *exec.Cmd
-	if wadFiles[1] == "" {
+	if len(wadFiles) == 1 || wadFiles[1] == "" {
 		command = exec.Command(launcher, "-iwad", iwad, "-file", wadFiles[0])
 	} else {
 		command = exec.Command(launcher, "-iwad", iwad, "-file", wadFiles[0], wadFiles[1])
