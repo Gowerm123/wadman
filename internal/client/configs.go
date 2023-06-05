@@ -33,6 +33,7 @@ func loadConfigs() Configuration {
 
 	var config Configuration
 	err = json.Unmarshal(bytes, &config)
+
 	helpers.HandleFatalErr(err)
 
 	return config

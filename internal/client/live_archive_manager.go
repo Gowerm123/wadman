@@ -2,6 +2,7 @@ package client
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -16,28 +17,19 @@ type LiveArchiveManager struct {
 	entries []ArchiveEntry
 }
 
-type ArchiveEntry struct {
-	Name    string   `json:"name"`
-	Dir     string   `json:"dir"`
-	Uri     string   `json:"uri"`
-	Aliases []string `json:"aliases"`
-	Iwad    string   `json:"iwad"`
-}
-
-func NewArchiveManager() LiveArchiveManager {
+func NewArchiveManager() ArchiveManager {
 	pm := LiveArchiveManager{}
 
 	pm.path = helpers.GetWadmanHomeDir() + "wadmanifest.json"
 
 	pm.load()
 
-	return pm
+	return &pm
 }
 
 func (pm *LiveArchiveManager) load() {
 	body, err := ioutil.ReadFile(pm.path)
 	helpers.HandleFatalErr(err)
-
 	json.Unmarshal(body, &pm.entries)
 }
 
@@ -46,7 +38,7 @@ func (pm *LiveArchiveManager) newEntry(filename, path, url string) {
 		return
 	}
 	pm.entries = append(pm.entries, ArchiveEntry{Name: filename, Dir: path, Uri: url})
-	helpers.HandleFatalErr(pm.Commit())
+	helpers.HandleFatalErr(pm.Commit(), "failed to commit to wadmanifest")
 }
 
 func (pm *LiveArchiveManager) Contains(filename, url string) bool {
@@ -95,15 +87,20 @@ func (pm *LiveArchiveManager) AddAlias(target, alias string) {
 	helpers.HandleFatalErr(pm.Commit())
 }
 
-func (pm *LiveArchiveManager) Remove(target string) {
+func (pm *LiveArchiveManager) Remove(target string) bool {
 	index := pm.findEntry(target)
-
+	if index == -1 {
+		log.Printf("target %s does not exist\n", target)
+		return false
+	}
 	dir := pm.entries[index].Dir
 
 	helpers.HandleFatalErr(os.RemoveAll(dir))
 
 	pm.entries = append(pm.entries[:index], pm.entries[index+1:]...)
 	helpers.HandleFatalErr(pm.Commit())
+
+	return true
 }
 
 func (pm *LiveArchiveManager) LookupIwad(target string) string {
@@ -151,7 +148,16 @@ func (pm *LiveArchiveManager) Exists(url string) bool {
 	return false
 }
 
-func (pm LiveArchiveManager) Install(file ApiFile, installPath string) bool {
+func (pm *LiveArchiveManager) CheckExists(identifier string) bool {
+	for _, entry := range pm.entries {
+		if entry.Name == identifier || helpers.Contains(entry.Aliases, identifier) || entry.Dir == identifier || entry.Uri == identifier {
+			return true
+		}
+	}
+	return false
+}
+
+func (pm *LiveArchiveManager) Install(file ApiFile) bool {
 	dirName := strings.Replace(file.Filename, ".zip", "", 1)
 	if pm.Contains(dirName, file.IdGamesUrl) {
 		log.Println("skipping " + dirName + " it is already installed")
@@ -159,14 +165,70 @@ func (pm LiveArchiveManager) Install(file ApiFile, installPath string) bool {
 	}
 
 	unzipped := helpers.GetWadmanHomeDir() + dirName
-	err := helpers.Unzip(installPath, unzipped)
-	helpers.HandleFatalErr(err, "failed to unzip archive", installPath, "-")
+	err := helpers.Unzip(helpers.GetWadmanHomeDir()+file.Filename, unzipped)
+	helpers.HandleFatalErr(err, "failed to unzip archive", file.Filename, "-")
 
 	log.Println("Removing unnnecessary zip archive")
-	err = os.Remove(installPath)
-	helpers.HandleFatalErr(err, "failed to delete zip archive", installPath, "-")
+	err = os.Remove(helpers.GetWadmanHomeDir() + file.Filename)
+	helpers.HandleFatalErr(err, "failed to delete zip archive", file.Filename, "-")
 
 	pm.newEntry(dirName, unzipped, file.IdGamesUrl)
 
 	return true
+}
+
+func (pm *LiveArchiveManager) InstallSyncPackage(file ApiFile) bool {
+	dirName := strings.Replace(file.Filename, ".zip", "", 1)
+
+	unzipped := helpers.GetWadmanHomeDir() + dirName
+	err := helpers.Unzip(helpers.GetWadmanHomeDir()+file.Filename, unzipped)
+	helpers.HandleFatalErr(err, "failed to unzip archive", file.Filename, "-")
+
+	log.Println("Removing unnnecessary zip archive")
+	err = os.Remove(helpers.GetWadmanHomeDir() + file.Filename)
+	helpers.HandleFatalErr(err, "failed to delete zip archive", file.Filename, "-")
+
+	pm.newEntry(dirName, unzipped, file.IdGamesUrl)
+
+	return true
+}
+
+func (am *LiveArchiveManager) CollectPWads(dir string) []string {
+	pwads := searchForWads(dir)
+
+	return pwads
+}
+
+func (am *LiveArchiveManager) Entries() []ArchiveEntry {
+	return am.entries
+}
+
+func (am *LiveArchiveManager) List() {
+	for _, entry := range am.entries {
+		log.Printf("Package - Name: %s, Dir: %s, Uri: %s, Aliases: %s\n", entry.Name, entry.Dir, entry.Uri, entry.Aliases)
+	}
+}
+
+func searchForWads(dir string) []string {
+	var buffer []string
+	var wads []string
+
+	push(&buffer, dir)
+
+	for len(buffer) > 0 {
+		path := pop(&buffer)
+
+		entries, err := os.ReadDir(path)
+		helpers.HandleFatalErr(err)
+
+		for _, entry := range entries {
+			if entry.IsDir() {
+				push(&buffer, fmt.Sprintf("%s/%s", path, entry.Name()))
+			} else if isPWad(entry.Name()) {
+				push(&wads, fmt.Sprintf("%s/%s", path, entry.Name()))
+			}
+		}
+	}
+
+	return wads
 }

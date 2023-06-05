@@ -46,6 +46,7 @@ func (af *ArrayFlags) Set(str string) error {
 
 func main() {
 	idGamesClient = client.New()
+	archiveManager = client.NewArchiveManager()
 	command, arguments := parseCli()
 	switch command {
 	case "-i", "--install":
@@ -61,10 +62,12 @@ func main() {
 		handleRunCommand(arguments)
 		return
 	case "-l", "--list":
-		idGamesClient.List()
+		archiveManager.List()
 		return
 	case "-s", "--set":
 		handleSetCommand(arguments)
+	case "-sy", "--sync":
+		handleSyncCommand()
 	default:
 		log.Println("Unknown command")
 		return
@@ -74,8 +77,29 @@ func main() {
 func handleInstallCommand(arguments ArrayFlags) {
 	enforceRoot("install")
 	for _, argument := range arguments {
-		if !idGamesClient.Install(argument, archiveManager) {
-			log.Fatalf("failed to install target %s", argument)
+		if !archiveManager.CheckExists(argument) {
+			if !idGamesClient.Install(argument, archiveManager) {
+				log.Println("no archives found using filename, expanding search")
+				if !idGamesClient.Install(argument, archiveManager) {
+					log.Fatalf("failed to install target %s", argument)
+				}
+			}
+			log.Println("successfully installed archive")
+		} else {
+			log.Printf("target %s is already installed", argument)
+			os.Exit(0)
+		}
+	}
+}
+
+func handleSyncCommand() {
+	enforceRoot("sync")
+	for _, entry := range archiveManager.Entries() {
+		if st, err := os.Stat(helpers.GetWadmanHomeDir() + helpers.ToTargetName(entry.Name)); err == nil && st.IsDir() {
+			log.Printf("target %s already installed\n", helpers.ToTargetName(entry.Name))
+		} else {
+			log.Printf("syncing %s\n", entry.Name)
+			ToLiveClient(idGamesClient).InstallByFile(entry.ToFile(), archiveManager)
 		}
 	}
 }
@@ -103,10 +127,10 @@ func handleRunCommand(args ArrayFlags) {
 
 	//Check if iwad path exists, if not, assume alias
 	if _, err := os.Stat(iwad); err != nil {
-		iwad = archiveManager.LookupWADAlias(iwad)
+		iwad = LookupWADAlias(iwad, idGamesClient)
 	}
 
-	launcher := interface{}(idGamesClient).(client.LiveClient).Configuration.Launcher
+	launcher := ToLiveClient(idGamesClient).Configuration.Launcher
 
 	wadFiles := archiveManager.CollectPWads(helpers.GetWadmanHomeDir() + file)
 
@@ -125,7 +149,7 @@ func handleRunCommand(args ArrayFlags) {
 func handleSearchCommand(args ArrayFlags) {
 	buffer := ""
 	for _, arg := range args {
-		buffer += idGamesClient.SearchAndPrint(arg)
+		buffer += idGamesClient.Search(arg)
 	}
 	log.Println(buffer)
 }
@@ -143,7 +167,9 @@ func handleRemoveCommand(args ArrayFlags) {
 	enforceRoot("remove")
 
 	for _, target := range args {
-		archiveManager.Remove(target)
+		if archiveManager.Remove(target) {
+			log.Printf("successfully removed %s\n", target)
+		}
 	}
 }
 
@@ -166,4 +192,12 @@ func parseCli() (cmd string, arguments []string) {
 	arguments = os.Args[2:]
 
 	return cmd, arguments
+}
+
+func LookupWADAlias(alias string, cli client.IdGamesClient) string {
+	return ToLiveClient(cli).Configuration.IWads[alias]
+}
+
+func ToLiveClient(cli client.IdGamesClient) client.LiveClient {
+	return interface{}(cli).(client.LiveClient)
 }

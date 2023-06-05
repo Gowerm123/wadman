@@ -29,7 +29,6 @@ var (
 
 type LiveClient struct {
 	httpClient http.Client
-	LiveArchiveManager
 	Configuration
 }
 
@@ -39,7 +38,7 @@ type Payload struct {
 }
 
 type searchResponse struct {
-	Files []ApiFile `xml:"content>file"`
+	Files []*ApiFile `xml:"content>file"`
 }
 
 type ApiFile struct {
@@ -63,7 +62,6 @@ func New() IdGamesClient {
 
 	client.Configuration = loadConfigs()
 	client.httpClient = *http.DefaultClient
-	client.LiveArchiveManager = NewArchiveManager()
 
 	return client
 }
@@ -81,12 +79,12 @@ func (dwc LiveClient) sendQuery(query string) searchResponse {
 	return response
 }
 
-func (dwc LiveClient) search(query string) []ApiFile {
+func (dwc LiveClient) search(query string) []*ApiFile {
 	response := dwc.sendQuery(query)
 	return response.Files
 }
 
-func (dwc LiveClient) SearchAndPrint(query string) string {
+func (dwc LiveClient) Search(query string) string {
 	response := dwc.sendQuery(query)
 	output := ""
 	for _, entry := range response.Files {
@@ -95,9 +93,9 @@ func (dwc LiveClient) SearchAndPrint(query string) string {
 	return output
 }
 
-func formatAndPrint(file ApiFile) string {
+func formatAndPrint(file *ApiFile) string {
 	file = sanitizeFile(file)
-	return fmt.Sprintf("File Found\n\tFilename: %s\n\tTitle: %s,\n\tAuthor: %s,\n\tDate: %s\n\tUrl: %s\n", file.Filename, file.Title, file.Author, file.Date, file.IdGamesUrl)
+	return fmt.Sprintf("\t%s\n\tTitle: %s,\n\tAuthor: %s,\n\tDate: %s\n\tUrl: %s\n", helpers.ToTargetName(file.Filename), file.Title, file.Author, file.Date, file.IdGamesUrl)
 }
 
 func (dwc LiveClient) dial(action string, params map[string]string) (Payload, error) {
@@ -120,9 +118,16 @@ func (dwc LiveClient) dial(action string, params map[string]string) (Payload, er
 	return Payload{Body: string(body), Headers: response.Header}, nil
 }
 
-func (dwc LiveClient) Install(query string, am ArchiveManager) bool {
+func collectChoice(dwc LiveClient, query string) *ApiFile {
 	files := dwc.search(query)
+	filtered := []*ApiFile{}
+	for _, file := range files {
+		if file.Filename == query {
+			filtered = append(filtered, file)
+		}
+	}
 
+	files = filtered
 	var choice int = 0
 
 	if len(files) == 0 {
@@ -132,9 +137,9 @@ func (dwc LiveClient) Install(query string, am ArchiveManager) bool {
 		log.Println("Multiple files found, please choose...")
 		for it, file := range files {
 			file = sanitizeFile(file)
-			log.Printf("%d) %s, by %s, file - %s\n", it, file.Title, file.Author, file.Filename)
+			log.Printf("%d) %s, by %s, file - %s\n", it+1, file.Title, file.Author, file.Filename)
 		}
-		log.Printf("Choice (0 - %d): ", len(files))
+		log.Printf("Choice (1 - %d): ", len(files))
 
 		var (
 			tmpString string
@@ -145,28 +150,23 @@ func (dwc LiveClient) Install(query string, am ArchiveManager) bool {
 
 		choice, err = strconv.Atoi(tmpString)
 		helpers.HandleFatalErr(err)
+		choice -= 1
 	}
 
-	file := files[choice]
-
-	dwc.saveContentToZipFile(file)
-	am.Install(file)
-
-	return false
+	return files[choice]
 }
 
-func (dwc LiveClient) List() {
-	for _, entry := range dwc.LiveArchiveManager.entries {
-		log.Printf("Package - Name: %s, Dir: %s, Uri: %s, Aliases: %s\n", entry.Name, entry.Dir, entry.Uri, entry.Aliases)
-	}
+func (dwc LiveClient) Install(query string, am ArchiveManager) bool {
+	file := collectChoice(dwc, query)
+
+	dwc.saveContentToZipFile(file)
+	am.Install(*file)
+
+	return true
 }
 
 func (dwc LiveClient) Set(key, value string) {
 	dwc.Configuration.Update(key, value)
-}
-
-func (dwc LiveClient) AddAlias(target, alias string) {
-	dwc.LiveArchiveManager.AddAlias(target, alias)
 }
 
 func (dwc LiveClient) ValidateCommand(cmd string) {
@@ -176,15 +176,15 @@ func (dwc LiveClient) ValidateCommand(cmd string) {
 	}
 }
 
-func (dwc LiveClient) LookupLocalPath(name string) string {
-	return dwc.LiveArchiveManager.GetFilePath(name)
+func (dwc LiveClient) InstallByFile(file *ApiFile, am ArchiveManager) {
+	dwc.saveContentToZipFile(file)
+	am.Install(*file)
 }
 
-func (dwc LiveClient) saveContentToZipFile(file ApiFile) {
+func (dwc LiveClient) saveContentToZipFile(file *ApiFile) {
 	for _, mirror := range dwc.Configuration.Mirrors {
 		filepath := strings.Replace(file.IdGamesUrl, idGamesSubstr, "", 1)
 		endpointUri := fmt.Sprintf("http://%s/idgames/%s", mirror, filepath)
-
 		log.Println("Attempting install from ", endpointUri)
 
 		content, err := dwc.httpClient.Get(endpointUri)
@@ -204,48 +204,6 @@ func (dwc LiveClient) saveContentToZipFile(file ApiFile) {
 		return
 	}
 	panic(fmt.Errorf("failed to download from available mirrors, mirrors can be updated at $HOME/.config/wadman-config.json"))
-}
-
-func (dwc LiveClient) LookupIwad(name string) string {
-	return dwc.LiveArchiveManager.LookupIwad(name)
-}
-
-func (dwc LiveClient) RegisterIwad(name, iwad string) {
-	dwc.LiveArchiveManager.RegisterIwad(name, iwad)
-}
-
-func (dwc LiveClient) LookupWADAlias(alias string) string {
-	return dwc.Configuration.IWads[alias]
-}
-
-func (dwc LiveClient) CollectPWads(dir string) []string {
-	pwads := dwc.searchForWads(dir)
-
-	return pwads
-}
-
-func (dwc LiveClient) searchForWads(dir string) []string {
-	var buffer []string
-	var wads []string
-
-	push(&buffer, dir)
-
-	for len(buffer) > 0 {
-		path := pop(&buffer)
-
-		entries, err := os.ReadDir(path)
-		helpers.HandleFatalErr(err)
-
-		for _, entry := range entries {
-			if entry.IsDir() {
-				push(&buffer, fmt.Sprintf("%s/%s", path, entry.Name()))
-			} else if isPWad(entry.Name()) {
-				push(&wads, fmt.Sprintf("%s/%s", path, entry.Name()))
-			}
-		}
-	}
-
-	return wads
 }
 
 func push(buffer *[]string, item string) {
@@ -277,8 +235,8 @@ func sanitize(s string) string {
 	return placeholder
 }
 
-func sanitizeFile(file ApiFile) ApiFile {
-	var placeholder ApiFile
+func sanitizeFile(file *ApiFile) *ApiFile {
+	var placeholder *ApiFile
 
 	placeholder.Age = file.Age
 	placeholder.Author = sanitize(file.Author)

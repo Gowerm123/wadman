@@ -128,3 +128,17 @@ func WadmanConfigPath() string {
 
 	return dir + configPath
 }
+
+func ToZipFileName(filename string) string {
+	if len(filename) < 4 || filename[len(filename)-4:] != ".zip" {
+		return filename + ".zip"
+	}
+	return filename
+}
+
+func ToTargetName(filename string) string {
+	if len(filename) >= 4 && filename[len(filename)-4:] == ".zip" {
+		return filename[:len(filename)-4]
+	}
+	return filename
+}
