@@ -119,6 +119,9 @@ func (dwc LiveClient) dial(action string, params map[string]string) (Payload, er
 }
 
 func collectChoice(dwc LiveClient, query string) *ApiFile {
+	if len(query) < 3 && len(query) > 0 {
+		query = helpers.ToZipFileName(query)
+	}
 	files := dwc.search(query)
 	filtered := []*ApiFile{}
 	for _, file := range files {
@@ -126,6 +129,8 @@ func collectChoice(dwc LiveClient, query string) *ApiFile {
 			filtered = append(filtered, file)
 		}
 	}
+
+	files = dedup(files)
 
 	var choice int = 0
 
@@ -156,6 +161,19 @@ func collectChoice(dwc LiveClient, query string) *ApiFile {
 	}
 
 	return files[choice]
+}
+
+func dedup(ls []*ApiFile) []*ApiFile {
+	keys := make(map[string]bool)
+	outLs := []*ApiFile{}
+
+	for _, val := range ls {
+		if _, exists := keys[val.IdGamesUrl]; !exists {
+			outLs = append(outLs, val)
+			keys[val.IdGamesUrl] = true
+		}
+	}
+	return outLs
 }
 
 func (dwc LiveClient) Install(query string, am ArchiveManager) bool {
