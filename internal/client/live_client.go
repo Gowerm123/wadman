@@ -127,13 +127,15 @@ func collectChoice(dwc LiveClient, query string) *ApiFile {
 		}
 	}
 
-	files = filtered
 	var choice int = 0
 
 	if len(files) == 0 {
-		log.Print("Entry not found for search query, try a different QUERYTYPE?")
+		log.Printf("no archives found for search %s\n", query)
 		os.Exit(0)
 	} else if len(files) > 1 {
+		if len(filtered) == 1 {
+			return filtered[0]
+		}
 		log.Println("Multiple files found, please choose...")
 		for it, file := range files {
 			file = sanitizeFile(file)
@@ -236,7 +238,7 @@ func sanitize(s string) string {
 }
 
 func sanitizeFile(file *ApiFile) *ApiFile {
-	var placeholder *ApiFile
+	var placeholder *ApiFile = &ApiFile{}
 
 	placeholder.Age = file.Age
 	placeholder.Author = sanitize(file.Author)
