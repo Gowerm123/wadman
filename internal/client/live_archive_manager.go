@@ -109,7 +109,12 @@ func (pm *LiveArchiveManager) LookupIwad(target string) string {
 		index = pm.findByAlias(target)
 	}
 
-	return pm.entries[index].Iwad
+	if index == -1 {
+		return ""
+	} else {
+		return pm.entries[index].Iwad
+	}
+
 }
 
 func (pm *LiveArchiveManager) RegisterIwad(target, iwad string) {

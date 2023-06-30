@@ -116,14 +116,8 @@ func handleSetCommand(args ArrayFlags) {
 func handleRunCommand(args ArrayFlags) {
 	firstArg := args[0]
 	secondArg := getOptional(args, 1, "")
-	var iwad, file string
-	if secondArg == "" {
-		file = firstArg
-		iwad = archiveManager.LookupIwad(file)
-	} else {
-		file = secondArg
-		iwad = firstArg
-	}
+
+	iwad, file := organizeIntoIwadAndFileArguments(firstArg, secondArg)
 
 	//Check if iwad path exists, if not, assume alias
 	if _, err := os.Stat(iwad); err != nil {
@@ -131,19 +125,44 @@ func handleRunCommand(args ArrayFlags) {
 	}
 
 	launcher := ToLiveClient(idGamesClient).Configuration.Launcher
-
-	wadFiles := archiveManager.CollectPWads(helpers.GetWadmanHomeDir() + file)
-
+	var wadFiles []string
+	if file != "" {
+		log.Println("!!", launcher, file)
+		wadFiles = archiveManager.CollectPWads(helpers.GetWadmanHomeDir() + file)
+	}
+	log.Println("!!", wadFiles)
 	var command *exec.Cmd
-	if len(wadFiles) == 1 || wadFiles[1] == "" {
+	if len(wadFiles) == 1 || (len(wadFiles) > 0 && wadFiles[1] == "") {
 		command = exec.Command(launcher, "-iwad", iwad, "-file", wadFiles[0])
-	} else {
+	} else if len(wadFiles) > 1 || (len(wadFiles) > 0 && wadFiles[1] != "") {
 		command = exec.Command(launcher, "-iwad", iwad, "-file", wadFiles[0], wadFiles[1])
+	} else {
+		command = exec.Command(launcher, "-iwad", iwad)
 	}
 
-	if _, err := command.Output(); err != nil {
+	if outp, err := command.Output(); err != nil {
 		helpers.HandleFatalErr(err)
+	} else {
+		log.Println(string(outp))
 	}
+
+}
+
+func organizeIntoIwadAndFileArguments(arg1, arg2 string) (string, string) {
+	var iwad, file string
+	if arg2 == "" {
+		file = arg1
+		iwad = archiveManager.LookupIwad(file)
+		if iwad == "" {
+			iwad = file
+			file = ""
+		}
+	} else {
+		file = arg2
+		iwad = arg1
+	}
+
+	return iwad, file
 }
 
 func handleSearchCommand(args ArrayFlags) {
