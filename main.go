@@ -127,10 +127,8 @@ func handleRunCommand(args ArrayFlags) {
 	launcher := ToLiveClient(idGamesClient).Configuration.Launcher
 	var wadFiles []string
 	if file != "" {
-		log.Println("!!", launcher, file)
 		wadFiles = archiveManager.CollectPWads(helpers.GetWadmanHomeDir() + file)
 	}
-	log.Println("!!", wadFiles)
 	var command *exec.Cmd
 	if len(wadFiles) == 1 || (len(wadFiles) > 0 && wadFiles[1] == "") {
 		command = exec.Command(launcher, "-iwad", iwad, "-file", wadFiles[0])
