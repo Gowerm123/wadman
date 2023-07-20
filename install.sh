@@ -45,7 +45,7 @@ then
     sudo echo "  \"launcher\": \"gzdoom\"," >> $CONFIG_PATH
     sudo echo "  \"launchArgs\": []," >> $CONFIG_PATH
     sudo echo "  \"iwads\": {}," >> $CONFIG_PATH
-    sudo echo "  \"mirrors\": \"$BASE_MIRRORS\"" >> $CONFIG_PATH
+    sudo echo "  \"mirrors\": $BASE_MIRRORS" >> $CONFIG_PATH
     sudo echo "}" >> $CONFIG_PATH
 else
     echo "config file isn't empty...skipping..."
