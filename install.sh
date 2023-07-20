@@ -12,7 +12,7 @@ USER_HOME=$(getent passwd $SUDO_USER | cut -d: -f6)
 BASEPATH="$USER_HOME/.wadman"
 WADMANIFEST=$BASEPATH/wadmanifest.json
 CONFIG_PATH=$USER_HOME/.config/wadman-config.json
-BASE_MIRRORS="[\"http://mirrors.syringanetworks.net\",\"http://www.quaddicted.com\",\"http://ftpmirror1.infania.net\"]"
+BASE_MIRRORS="[\"mirrors.syringanetworks.net\",\"www.quaddicted.com\",\"ftpmirror1.infania.net\"]"
 
 if [ ! -d "$BASEPATH" ]; 
 then
