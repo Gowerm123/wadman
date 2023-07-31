@@ -210,7 +210,7 @@ func (am *LiveArchiveManager) Entries() []ArchiveEntry {
 
 func (am *LiveArchiveManager) List() {
 	for _, entry := range am.entries {
-		log.Printf("Package - Name: %s, Dir: %s, Uri: %s, Aliases: %s\n", entry.Name, entry.Dir, entry.Uri, entry.Aliases)
+		log.Println(entry.Name)
 	}
 }
 
