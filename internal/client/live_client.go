@@ -95,7 +95,7 @@ func (dwc LiveClient) Search(query string) string {
 
 func formatAndPrint(file *ApiFile) string {
 	file = sanitizeFile(file)
-	return fmt.Sprintf("\t%s\n\tTitle: %s,\n\tAuthor: %s,\n\tDate: %s\n\tUrl: %s\n", helpers.ToTargetName(file.Filename), file.Title, file.Author, file.Date, file.IdGamesUrl)
+	return fmt.Sprintf("[%s] - %s\n\t%s\n\n", helpers.ToTargetName(file.Filename), file.Title, file.Description)
 }
 
 func (dwc LiveClient) dial(action string, params map[string]string) (Payload, error) {
