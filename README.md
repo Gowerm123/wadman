@@ -1,3 +1,5 @@
+# MOVED TO CODEBERG: https://codeberg.org/Gowerm/wadman
+
 # Custom DOOM WADs (for the linux DOOMer)
 
 Build status (main) - ![build badge](https://github.com/gowerm123/wadman/actions/workflows/go.yml/badge.svg)
